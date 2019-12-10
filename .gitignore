@@ -1,0 +1,11 @@
+# IDE settings
+.idea
+.settings
+.classpath
+.project
+
+# build files
+/target/
+
+# saved games
+*.sav
