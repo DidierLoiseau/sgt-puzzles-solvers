@@ -10,11 +10,22 @@ import java.util.List;
 public class SquareGridGenerator {
 
 	public Graph generate(LoopyParams params) {
+		return generate(params.getWidth(), params.getHeight());
+	}
+
+	public Graph generate(int width, int height) {
 		var grid = new Graph();
 		int side = 20;
 
-		for (int y = 0; y < params.getHeight(); y++) {
-			for (int x = 0; x < params.getWidth(); x++) {
+		// generates square faces horizontally
+		// (see grid_new_square() in grid.c from sgtpuzzles)
+		// ┌───┬───┐
+		// │ 0 │ 1 │
+		// ├───┼───┤
+		// │ 2 │ 3 │
+		// └───┴───┘
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
 				addFace(grid, side, x, y);
 			}
 		}
