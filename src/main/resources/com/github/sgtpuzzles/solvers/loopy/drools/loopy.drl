@@ -1,0 +1,78 @@
+package com.github.sgtpuzzles.solvers.loopy.drools
+
+import com.github.sgtpuzzles.grid.model.Edge
+import com.github.sgtpuzzles.solvers.loopy.LineStatus
+import com.github.sgtpuzzles.solvers.loopy.Move
+
+import function com.github.sgtpuzzles.solvers.loopy.drools.AtMost.atMost
+import function com.github.sgtpuzzles.solvers.loopy.drools.AtLeast.atLeast
+import function com.github.sgtpuzzles.solvers.loopy.drools.Exactly.exactly
+
+// Rules that work based on EdgeSettings
+rule "Remove set edge from EdgeRestriction"
+when
+	$es : EdgeSetting($edge: edge)
+	$er : EdgeRestriction(edges contains $edge)
+then
+	modify($er) { recordSetting($es) }
+end
+
+rule "CountOrNone becomes count"
+when
+	$es : EdgeSetting($edge: edge, status == LineStatus.LINE_YES)
+	$con: CountOrNone($edges: edges, edges contains $edge)
+then
+	delete($con);
+	insert(exactly($con.getExpectedYeses()).amongEdges($edges));
+end
+
+rule "CountOrNone remove unset edge"
+when
+	$es : EdgeSetting($edge: edge, status == LineStatus.LINE_NO)
+	$con: CountOrNone($edges: edges, edges contains $edge)
+then
+	modify($con) { recordSetting($es) }
+end
+
+rule "Retract EdgeSetting and record Move"
+when
+	$es : EdgeSetting($edge: edge)
+	// setting has been processed by all rules above
+	not EdgeRestriction(edges contains $edge)
+	not CountOrNone(edges contains $edge)
+then
+	delete($es);
+	insert(new Move($es.getEdge(), $es.getStatus()));
+end
+
+// Rules that infer EdgeSettings
+rule "AtLeast requires all set"
+when
+	not EdgeSetting()
+    $edge : Edge()
+    $ex : AtLeast(expectedYeses == edges.size(), edges contains $edge)
+then
+    insert(new EdgeSetting($edge, LineStatus.LINE_YES));
+end
+
+rule "AtMost requires none set"
+when
+	not EdgeSetting()
+    $edge : Edge()
+    $ex : AtMost(expectedYeses == 0, edges contains $edge)
+then
+    insert(new EdgeSetting($edge, LineStatus.LINE_NO));
+end
+
+// Rules that infer other facts
+rule "CountOrNone becomes none"
+when
+	$con: CountOrNone($edges: edges, edges.size() < expectedYeses)
+then
+	delete($con);
+	insert(atMost(0).amongEdges($edges));
+end
+
+query getMoves ()
+	$move: Move()
+end
