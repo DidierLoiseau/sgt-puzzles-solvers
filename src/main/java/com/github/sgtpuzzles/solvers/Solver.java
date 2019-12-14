@@ -15,12 +15,16 @@ public class Solver {
 	public static void main(String[] args) throws IOException {
 		final var parser = new SavedGameParser();
 		final GameData<?> gameData = parser.parseSavedGame(Paths.get(args[0]));
-		System.out.println(gameData);
 		var generator = new SquareGridGenerator();
-		var grid = generator.generate((LoopyParams) gameData.getParams());
-		System.out.println(grid);
-		try (var writer = new BufferedWriter(new FileWriter(args[0] + ".copy"))) {
-			gameData.getRawData().serializeTo(writer);
+		var graph = generator.generate((LoopyParams) gameData.getParams());
+
+		var loopySolver = new LoopySolver();
+		var moves = loopySolver.solve(graph, new LoopyDescParser().parseClues(gameData.getDesc()));
+		gameData.setMoves(moves);
+
+		var solutionFile = args[0].substring(0, args[0].length() - 4) + ".solved";
+		try (var writer = new BufferedWriter(new FileWriter(solutionFile))) {
+			gameData.serializeTo(writer);
 		}
 	}
 }

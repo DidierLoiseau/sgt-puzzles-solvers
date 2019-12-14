@@ -1,5 +1,6 @@
 package com.github.sgtpuzzles.solvers;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.IOException;
@@ -68,11 +69,21 @@ public class DeserializeData {
 			return false;
 		}
 	}
+
+	public void setMoves(List<DeserializeLine> moves) {
+		this.moves.clear();
+		this.moves.addAll(moves);
+		var movePos = Integer.toString(moves.size() + 1);
+		data.get(SaveKeys.NSTATES.name()).setValue(movePos);
+		data.get(SaveKeys.STATEPOS.name()).setValue("1");
+	}
 }
 
 @Data
+@AllArgsConstructor
 class DeserializeLine {
-	private final String key, value;
+	private final String key;
+	private String value;
 
 	public void serializeTo(Writer output) throws UncheckedIOException {
 		try {
