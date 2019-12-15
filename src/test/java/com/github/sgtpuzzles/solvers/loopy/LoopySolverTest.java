@@ -99,6 +99,60 @@ public class LoopySolverTest {
 				new Move(graph.getFace(5).getEdge(1), LINE_YES));
 	}
 
+	@Test
+	public void solvePreventsFormingLoopsIfUnsatisfiedClues() {
+		// given
+		var graph = generator.generate(3, 3);
+		var clues = parseClues("""
+				        ┌───┐
+				  0     │   │
+				    ┏━━━┥   │
+				  2 ┃   ╎ 2 │
+				┏━━━┛   ┟───┘
+				┃     2 ┃    
+				┗━━━━━━━┛    
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then we want to remove the edge at the right of the middle cell
+		assertThat(moves).contains(new Move(graph.getFace(4).getEdge(1), LINE_NO));
+	}
+
+	@Test
+	public void solveDetectsIndependentlyConnectedLines() {
+		// given
+		var graph = generator.generate(7, 7);
+		var clues = parseClues("""
+				┌───┬───┮━━━┓   ┏━━━┭───┬───┐
+				│   │   │   ┃   ┃   │   │   │ // 0-6
+				├───┼───┘   ┗━━━┛   └───┼───┤
+				│   │     0   2   0     │   │ // 7-13
+				┟───┘       ┏━━━┓   ┌───┼───┤
+				┃     0     ┃   ┃   │   │   │ // 14-20
+				┗━━━┓   ┏━━━┛   ┗╍╍╍┵───┼───┤
+				    ┃ 2 ┃       ╎   ╎   │   │ // 21-27 – we want to prevent the closed loop here
+				┏━━━┛   ┗━━━┓   ┏╍╍╍┭───┼───┤
+				┃     0     ┃   ┃   │   │   │ // 28-34
+				┞───┐       ┗━━━┛   └───┼───┤
+				│   │     0   2   0     │   │ // 35-41
+				├───┼───┐   ┏━━━┓   ┌───┼───┤
+				│   │   │   ┃   ┃   │   │   │ // 42-48
+				└───┴───┶━━━┛   ┗━━━┵───┴───┘
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then we want to remove the 2 ╎ and add the 2 ╍╍╍
+		assertThat(moves).contains(
+				new Move(graph.getFace(25).getEdge(0), LINE_YES),
+				new Move(graph.getFace(25).getEdge(1), LINE_NO),
+				new Move(graph.getFace(25).getEdge(2), LINE_YES),
+				new Move(graph.getFace(25).getEdge(3), LINE_NO));
+	}
+
 	private Map<Integer, Integer> parseClues(String visual) {
 		var lines = visual.split("\n");
 		var result = new HashMap<Integer, Integer>();

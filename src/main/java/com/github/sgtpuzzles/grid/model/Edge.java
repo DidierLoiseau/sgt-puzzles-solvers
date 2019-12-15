@@ -2,7 +2,11 @@ package com.github.sgtpuzzles.grid.model;
 
 import lombok.*;
 
+import java.util.Collection;
+import java.util.List;
+
 @Data
+@ToString(includeFieldNames = false)
 public class Edge {
 	private final int id;
 	private final Vertex vertex1, vertex2;
@@ -19,5 +23,17 @@ public class Edge {
 		} else {
 			face2 = face;
 		}
+	}
+
+	public boolean contains(Vertex vertex) {
+		return vertex == vertex1 || vertex == vertex2;
+	}
+
+	public Vertex getOther(Vertex vertex) {
+		return vertex == vertex1 ? vertex2 : vertex1;
+	}
+
+	public Collection<Vertex> getVertices() {
+		return List.of(vertex1, vertex2);
 	}
 }

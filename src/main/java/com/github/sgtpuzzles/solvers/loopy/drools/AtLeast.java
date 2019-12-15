@@ -1,5 +1,6 @@
 package com.github.sgtpuzzles.solvers.loopy.drools;
 
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 public interface AtLeast extends EdgeRestriction {
@@ -9,4 +10,6 @@ public interface AtLeast extends EdgeRestriction {
 }
 
 @SuperBuilder
-class AtLeastImpl extends AbstractEdgeRestriction implements AtLeast {}
+@ToString(callSuper = true)
+class AtLeastImpl extends AbstractEdgeRestriction implements AtLeast {
+}

@@ -34,12 +34,44 @@ then
 	modify($con) { recordSetting($es) }
 end
 
+rule "Merge ContinuousLines"
+when
+	$es   : EdgeSetting($edge: edge, $v1: edge.vertex1, $v2: edge.vertex2, status == LineStatus.LINE_YES)
+	$line : ContinuousLine(ends contains $v1)
+	$line2: ContinuousLine(this != $line, ends contains $v2)
+then
+	modify($line) { mergeWith($line2, $edge) };
+	delete($line2)
+end
+
+rule "Extend ContinuousLine"
+when
+	$es  : EdgeSetting($edge: edge, $v1: edge.vertex1, $v2: edge.vertex2, status == LineStatus.LINE_YES)
+	$line: ContinuousLine(ends contains $v1 || ends contains $v2, edges not contains $edge)
+	// not merging two lines
+	not(ContinuousLine(this != $line, ends contains $v1 || ends contains $v2))
+then
+	modify($line) { extendWith($edge) };
+end
+
+rule "Init ContinuousLine"
+when
+	$es  : EdgeSetting($edge: edge, $v1: edge.vertex1, $v2: edge.vertex2, status == LineStatus.LINE_YES)
+	// no continuous line with the edge and no possibility to merge or extend a continuous line
+	not(ContinuousLine(edges contains $edge || ends contains $v1 || ends contains $v2))
+then
+	insert(new ContinuousLine($edge));
+end
+	
+
 rule "Retract EdgeSetting and record Move"
 when
 	$es : EdgeSetting($edge: edge)
 	// setting has been processed by all rules above
 	not EdgeRestriction(edges contains $edge)
 	not CountOrNone(edges contains $edge)
+	(ContinuousLine(edges contains $edge)
+		or EdgeSetting($es == this, status == LineStatus.LINE_NO))
 then
 	delete($es);
 	insert(new Move($es.getEdge(), $es.getStatus()));
@@ -62,6 +94,18 @@ when
     $ex : AtMost(expectedYeses == 0, edges contains $edge)
 then
     insert(new EdgeSetting($edge, LineStatus.LINE_NO));
+end
+
+rule "Prevent closing isolated loop"
+when
+	not EdgeSetting()
+	$edge: Edge($v1: vertex1, $v2: vertex2)
+	ContinuousLine(edges not contains $edge, // ignore 1-edge line
+		ends contains $v1, ends contains $v2)
+	// this incidentally covers the case of remaining other ContinuousLines
+	AtLeast(expectedYeses > 1 || edges not contains $edge && expectedYeses > 0)
+then
+	insert(new EdgeSetting($edge, LineStatus.LINE_NO));
 end
 
 // Rules that infer other facts

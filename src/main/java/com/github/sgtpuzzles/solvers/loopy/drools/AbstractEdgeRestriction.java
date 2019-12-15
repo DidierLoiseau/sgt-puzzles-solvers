@@ -3,6 +3,7 @@ package com.github.sgtpuzzles.solvers.loopy.drools;
 import com.github.sgtpuzzles.grid.model.Edge;
 import com.github.sgtpuzzles.solvers.loopy.LineStatus;
 import lombok.Getter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.util.Collection;
@@ -11,6 +12,7 @@ import java.util.Set;
 
 @Getter
 @SuperBuilder
+@ToString
 public abstract class AbstractEdgeRestriction implements EdgeRestriction {
 	protected final Set<Edge> edges;
 	protected int expectedYeses;
