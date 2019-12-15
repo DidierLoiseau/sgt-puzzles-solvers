@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Data
+@ToString(includeFieldNames = false)
 public class Vertex {
 	private final Point position;
 	@EqualsAndHashCode.Exclude

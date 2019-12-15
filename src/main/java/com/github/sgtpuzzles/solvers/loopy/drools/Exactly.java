@@ -1,11 +1,13 @@
 package com.github.sgtpuzzles.solvers.loopy.drools;
 
 import com.github.sgtpuzzles.grid.model.Edge;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.util.Collection;
 
 @SuperBuilder
+@ToString(callSuper = true)
 public class Exactly extends AbstractEdgeRestriction implements AtLeast, AtMost {
 
 	public Exactly(Collection<Edge> edges, int expectedYeses) {
