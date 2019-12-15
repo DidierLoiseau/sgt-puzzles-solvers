@@ -66,4 +66,8 @@ public class Graph {
 		edge.addFace(outerFace);
 		outerFaceEdges.add(edge);
 	}
+
+	public Face getFace(int i) {
+		return getFaces().get(i);
+	}
 }

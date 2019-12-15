@@ -1,24 +1,28 @@
 package com.github.sgtpuzzles.solvers.loopy;
 
 import com.github.sgtpuzzles.grid.generators.SquareGridGenerator;
-import com.github.sgtpuzzles.grid.model.Graph;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static com.github.sgtpuzzles.solvers.loopy.LineStatus.LINE_NO;
 import static com.github.sgtpuzzles.solvers.loopy.LineStatus.LINE_YES;
+import static java.lang.Integer.parseInt;
 import static org.assertj.core.api.Assertions.assertThat;
 
+// box drawing characters: https://en.wikipedia.org/wiki/Box-drawing_character#Unicode
 public class LoopySolverTest {
 	private final LoopySolver solver = new LoopySolver();
 	private final SquareGridGenerator generator = new SquareGridGenerator();
+	public static final Pattern VISUAL_CLUE_PATTERN = Pattern.compile("[ \u2500-\u257F] ([ \\d]) ");
 
 	@Test
 	public void solveSimpleAllYes() {
 		// given
-		var graph = singleSquareGraph();
+		var graph = generator.generate(1, 1);
 		var clues = Map.of(0, 4);
 
 		// when
@@ -34,15 +38,15 @@ public class LoopySolverTest {
 	@Test
 	public void solveSimpleAllNo() {
 		// given
-		var graph = singleSquareGraph();
+		var graph = generator.generate(2, 2);
 		var clues = Map.of(0, 0);
 
 		// when
 		List<Move> moves = solver.solve(graph, clues);
 
 		// then
-		assertThat(moves).containsExactlyInAnyOrder(
-				graph.getEdges().stream()
+		assertThat(moves).contains(
+				graph.getFace(0).getEdges().stream()
 						.map(e -> new Move(e, LINE_NO))
 						.toArray(Move[]::new));
 	}
@@ -51,63 +55,67 @@ public class LoopySolverTest {
 	public void solveRemovesDanglingEdges() {
 		// "dangling edges" are unknown edges connected to a vertex of remaining cardinality 1
 		// given
-		// ┌───┬───┐
-		// │ 0 │   │
-		// ├───┼───┤
-		// │   │   │
-		// └───┴───┘
 		var graph = generator.generate(2, 2);
-		var clues = Map.of(0, 0);
+		var clues = parseClues("""
+				    ╶╶╶╶┐
+				  0     ╎
+				╷   ┌───┤
+				╎   │   │
+				└╴╴╴┴───┘
+				""");
 
 		// when
 		List<Move> moves = solver.solve(graph, clues);
 
 		// then
-		// applying the 0 gives the following state (numbers are faceId's):
-		//     ╶───┐
-		//   0   1 │
-		// ╷   ┌───┤
-		// │ 2 │ 3 │
-		// └───┴───┘
-		assertThat(moves).contains(new Move(graph.getFaces().get(1).getEdges().get(0), LINE_NO));
-		assertThat(moves).contains(new Move(graph.getFaces().get(1).getEdges().get(1), LINE_NO));
-		assertThat(moves).contains(new Move(graph.getFaces().get(2).getEdges().get(2), LINE_NO));
-		assertThat(moves).contains(new Move(graph.getFaces().get(2).getEdges().get(3), LINE_NO));
+		assertThat(moves).contains(
+				new Move(graph.getFace(1).getEdge(0), LINE_NO),
+				new Move(graph.getFace(1).getEdge(1), LINE_NO),
+				new Move(graph.getFace(2).getEdge(2), LINE_NO),
+				new Move(graph.getFace(2).getEdge(3), LINE_NO));
 	}
 
 	@Test
-	public void solveExtendsLinesAccrossSinglePossibilityVertex() {
+	public void solveExtendsLinesAcrossSinglePossibilityVertex() {
 		// given
-		// ┌───┬───┬───┐
-		// │   │ 3 │   │
-		// ├───┼───┼───┤
-		// │   │ 0 │   │
-		// ├───┼───┼───┤
-		// │   │   │   │
-		// └───┴───┴───┘
 		var graph = generator.generate(3, 3);
-		var clues = Map.of(1, 3, 4, 0);
+		var clues = parseClues("""
+				    ┏━━━┓
+				    ┃ 3 ┃     // 0-2
+				┏╸╸╸┛   ┗╺╺╺┓
+				╏     0     ╏ // 3-5 – we want the edges around the corners to be set here
+				┞───┐   ┌───┦
+				│   │   │   │ // 6-8
+				└───┴───┴───┘
+				""");
 
 		// when
 		List<Move> moves = solver.solve(graph, clues);
 
-		// then
-		// applying the 0 & 3 gives the following state:
-		//     ┏━━━┓
-		//   0 ┃ 1 ┃ 2
-		// ┌───┚   ┖───┐
-		// │ 3   4   5 │
-		// ├───┐   ┌───┤
-		// │ 6 │ 7 │ 8 │
-		// └───┴───┴───┘
-		// We want the lines to be set around the 3 and 5
-		assertThat(moves).contains(new Move(graph.getFaces().get(3).getEdges().get(0), LINE_YES));
-		assertThat(moves).contains(new Move(graph.getFaces().get(3).getEdges().get(3), LINE_YES));
-		assertThat(moves).contains(new Move(graph.getFaces().get(5).getEdges().get(0), LINE_YES));
-		assertThat(moves).contains(new Move(graph.getFaces().get(5).getEdges().get(1), LINE_YES));
+		// then we want the lines to be set around the 3 and 5
+		assertThat(moves).contains(new Move(graph.getFace(3).getEdge(0), LINE_YES),
+				new Move(graph.getFace(3).getEdge(3), LINE_YES),
+				new Move(graph.getFace(5).getEdge(0), LINE_YES),
+				new Move(graph.getFace(5).getEdge(1), LINE_YES));
 	}
 
-	private Graph singleSquareGraph() {
-		return generator.generate(1, 1);
+	private Map<Integer, Integer> parseClues(String visual) {
+		var lines = visual.split("\n");
+		var result = new HashMap<Integer, Integer>();
+		var faceId = 0;
+		for (int i = 0; i < lines.length; i++) {
+			if (i % 2 == 1) {
+				var cluePart = lines[i].split("//", 2)[0];
+				var matcher = VISUAL_CLUE_PATTERN.matcher(cluePart);
+				while (matcher.find()) {
+					var clue = matcher.group(1);
+					if (!clue.equals(" ")) {
+						result.put(faceId, parseInt(clue));
+					}
+					faceId++;
+				}
+			}
+		}
+		return result;
 	}
 }
