@@ -2,10 +2,10 @@ package com.github.sgtpuzzles.solvers.loopy.drools;
 
 import com.github.sgtpuzzles.grid.model.Edge;
 
-import java.util.Collection;
+import java.util.Set;
 
 public interface EdgeRestriction {
-	Collection<Edge> getEdges();
+	Set<Edge> getEdges();
 
 	int getExpectedYeses();
 

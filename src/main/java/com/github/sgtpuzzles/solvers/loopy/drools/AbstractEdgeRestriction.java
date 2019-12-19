@@ -16,10 +16,16 @@ import java.util.Set;
 public abstract class AbstractEdgeRestriction implements EdgeRestriction {
 	protected final Set<Edge> edges;
 	protected int expectedYeses;
+	protected final EdgeRestriction parent;
 
 	public AbstractEdgeRestriction(Collection<Edge> edges, int expectedYeses) {
+		this(edges, expectedYeses, null);
+	}
+
+	public AbstractEdgeRestriction(Collection<Edge> edges, int expectedYeses, EdgeRestriction parent) {
 		this.edges = new HashSet<>(edges);
 		this.expectedYeses = expectedYeses;
+		this.parent = parent;
 	}
 
 	@Override
