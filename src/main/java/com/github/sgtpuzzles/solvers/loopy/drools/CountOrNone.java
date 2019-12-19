@@ -22,4 +22,8 @@ public class CountOrNone {
 			throw new IllegalArgumentException("Cannot remove edge for LINE_YES");
 		}
 	}
+
+	public boolean isAllOrNone() {
+		return edges.size() == expectedYeses;
+	}
 }

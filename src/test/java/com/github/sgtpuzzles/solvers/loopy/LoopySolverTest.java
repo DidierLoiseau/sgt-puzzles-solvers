@@ -153,6 +153,48 @@ public class LoopySolverTest {
 				new Move(graph.getFace(25).getEdge(3), LINE_NO));
 	}
 
+	@Test
+	public void solveInfersRequiredFaceEdges() {
+		// given
+		var graph = generator.generate(2, 2);
+		var clues = parseClues("""
+				┏━━━┭───┐
+				┃ 3 │   │
+				┞───┼───┤
+				│   │   │
+				└───┴───┘
+				""");
+
+		// when25
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then we want the top-left corner to be set
+		assertThat(moves).contains(
+				new Move(graph.getFace(0).getEdge(0), LINE_YES),
+				new Move(graph.getFace(0).getEdge(3), LINE_YES));
+	}
+
+	@Test
+	public void solveExcludesImpossibleFaceEdges() {
+		// given
+		var graph = generator.generate(2, 2);
+		var clues = parseClues("""
+				┌╴╴╴┬───┐
+				╎ 1 │   │
+				├───┼───┤
+				│   │   │
+				└───┴───┘
+				""");
+
+		// when25
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then we want the top left corner to be removed
+		assertThat(moves).contains(
+				new Move(graph.getFace(0).getEdge(0), LINE_NO),
+				new Move(graph.getFace(0).getEdge(3), LINE_NO));
+	}
+
 	private Map<Integer, Integer> parseClues(String visual) {
 		var lines = visual.split("\n");
 		var result = new HashMap<Integer, Integer>();
