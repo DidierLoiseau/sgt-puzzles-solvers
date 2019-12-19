@@ -1,5 +1,7 @@
 package com.github.sgtpuzzles.solvers.loopy.drools
 
+import java.util.List
+
 import com.github.sgtpuzzles.grid.model.Edge
 import com.github.sgtpuzzles.solvers.loopy.LineStatus
 import com.github.sgtpuzzles.solvers.loopy.Move
@@ -139,6 +141,24 @@ when
 then
 	delete($con);
 	insert(atMost(0).amongEdges($edges));
+end
+
+rule "Nested Exactly's"
+when
+	not EdgeSetting()
+	$small: Exactly($edgesSmall: edges, $smallYeses: expectedYeses, expectedYeses > 0)
+	$big: Exactly(
+		this != $small.parent,
+		$edgesBig: edges,
+		$bigYeses: expectedYeses,
+		expectedYeses > 0,
+		$edgesSmall.size() < edges.size()
+	)
+	not(Edge(this memberOf $edgesSmall, this not memberOf $edgesBig))
+	$remainingEdges: List() from collect (Edge(this not memberOf $edgesSmall) from $edgesBig)
+	
+then
+	insert(new Exactly($remainingEdges, $bigYeses - $smallYeses, $big));
 end
 
 query getMoves ()

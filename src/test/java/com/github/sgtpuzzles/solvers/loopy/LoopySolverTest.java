@@ -195,6 +195,29 @@ public class LoopySolverTest {
 				new Move(graph.getFace(0).getEdge(3), LINE_NO));
 	}
 
+	@Test
+	public void solveDetectsNestedExactly() {
+		// given
+		var graph = generator.generate(3, 3);
+		var clues = parseClues("""
+				┏━━━┭───┰───┐
+				┃ 3 │ 3 ╏   │ // 0-2
+				┞───┾╸╸╸┩╴╴╴┤
+				│   │   ╎   │ // 3-5
+				├───┼───┼───┤
+				│   │   │   │ // 6-8
+				└───┴───┴───┘
+				""");
+
+		// when25
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then we want the top-left corner to be set
+		assertThat(moves).contains(
+				new Move(graph.getFace(1).getEdge(1), LINE_YES),
+				new Move(graph.getFace(1).getEdge(2), LINE_YES));
+	}
+
 	private Map<Integer, Integer> parseClues(String visual) {
 		var lines = visual.split("\n");
 		var result = new HashMap<Integer, Integer>();
