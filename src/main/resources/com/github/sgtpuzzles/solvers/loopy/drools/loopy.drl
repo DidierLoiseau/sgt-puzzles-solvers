@@ -108,6 +108,30 @@ then
 	insert(new EdgeSetting($edge, LineStatus.LINE_NO));
 end
 
+rule "Simple Required Face Edges"
+when
+	not EdgeSetting()
+	CountOrNone(allOrNone, $edges: edges, $yeses: expectedYeses)
+	AtLeast($atLeastEdges: edges, edges.size - $yeses < expectedYeses)
+	forall($e: Edge(this memberOf $edges)
+	           Edge(this == $e, this memberOf $atLeastEdges))
+	$edge: Edge(this memberOf $edges)
+then
+	insert(new EdgeSetting($edge, LineStatus.LINE_YES));
+end
+
+rule "Simple Impossible Face Edges"
+when
+	not EdgeSetting()
+	CountOrNone(allOrNone, $edges: edges, $yeses: expectedYeses)
+	AtMost($atMostEdges: edges, $yeses > expectedYeses)
+	forall($e: Edge(this memberOf $edges)
+	           Edge(this == $e, this memberOf $atMostEdges))
+	$edge: Edge(this memberOf $edges)
+then
+	insert(new EdgeSetting($edge, LineStatus.LINE_NO));
+end
+
 // Rules that infer other facts
 rule "CountOrNone becomes none"
 when
