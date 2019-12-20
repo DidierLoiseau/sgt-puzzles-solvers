@@ -13,7 +13,42 @@ import static com.github.sgtpuzzles.solvers.loopy.LineStatus.LINE_YES;
 import static java.lang.Integer.parseInt;
 import static org.assertj.core.api.Assertions.assertThat;
 
-// box drawing characters: https://en.wikipedia.org/wiki/Box-drawing_character#Unicode
+/*
+ * Box drawing characters: https://en.wikipedia.org/wiki/Box-drawing_character#Unicode
+ * Templates:
+				┌───┬───┬───┬───┬───┐
+				│   │   │   │   │   │
+				├───┼───┼───┼───┼───┤
+				│   │   │   │   │   │
+				├───┼───┼───┼───┼───┤
+				│   │   │   │   │   │
+				├───┼───┼───┼───┼───┤
+				│   │   │   │   │   │
+				├───┼───┼───┼───┼───┤
+				│   │   │   │   │   │
+				└───┴───┴───┴───┴───┘
+				┏━━━┓   ┏╍╍╍┓   ┌───┐   ┌╌╌╌┐
+				┃   ┃   ╏   ╏   │   │   ╎   ╎
+				┗━━━┛   ┗╍╍╍┛   └───┘   └╌╌╌┘
+				┌───┮━━━┭───┐   ┌───────┬───┐
+				│   │   │   │   │       │   │
+				│   ┝━━━┥   │   ┟───┰───╁───┧
+				│   │   │   │   ┃   ┃   ┃   ┃
+				├───┾━━━┽───┤   ┞───┸───╀───┦
+				│   │   │   │   │       │   │
+				└───┶━━━┵───┘   └───────┴───┘
+				┌───────┬───┬───────┐
+				│       │   │       │
+				├───────╆━━━╅───────┤
+				│       ┃   ┃       │
+				├───┲━━━┩   ┡━━━┱───┤
+				│   ┃   │   │   ┃   │
+				├───┺━━━┪   ┢━━━┹───┤
+				│       ┃   ┃       │
+				├───────╄━━━╃───────┤
+				│       │   │       │
+				└───────┴───┴───────┘
+ */
 public class LoopySolverTest {
 	private final LoopySolver solver = new LoopySolver();
 	private final SquareGridGenerator generator = new SquareGridGenerator();
@@ -216,6 +251,32 @@ public class LoopySolverTest {
 		assertThat(moves).contains(
 				new Move(graph.getFace(1).getEdge(1), LINE_YES),
 				new Move(graph.getFace(1).getEdge(2), LINE_YES));
+	}
+
+	@Test
+	public void solveDetectsAtmostOverlapsAtLeast() {
+		// given
+		var graph = generator.generate(4, 4);
+		var clues = parseClues("""
+				┏━━━━━━━┭───┬╌╌╌┐
+				┃       │   │   ╎
+				┗━━━┓   └───┾╍╍╍┓
+				  2 ┃ 2     │ 3 ╏
+				    ┗━━━━━━━┵───┦ // here we have exactly 1 overlaps with exactly 3 on 2 edges
+				  0   1     │   │
+				        ┌───┬───┤
+				        │   │   │
+				        └───┴───┘
+				""");
+
+		// when25
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then we want the top-left corner to be set
+		assertThat(moves).contains(
+				new Move(graph.getFace(7).getEdge(0), LINE_YES),
+				new Move(graph.getFace(7).getEdge(1), LINE_YES),
+				new Move(graph.getFace(10).getEdge(1), LINE_NO));
 	}
 
 	private Map<Integer, Integer> parseClues(String visual) {

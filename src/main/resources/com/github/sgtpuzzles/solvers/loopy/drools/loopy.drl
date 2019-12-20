@@ -1,6 +1,7 @@
 package com.github.sgtpuzzles.solvers.loopy.drools
 
 import java.util.List
+import java.util.Set
 
 import com.github.sgtpuzzles.grid.model.Edge
 import com.github.sgtpuzzles.solvers.loopy.LineStatus
@@ -156,9 +157,42 @@ when
 	)
 	not(Edge(this memberOf $edgesSmall, this not memberOf $edgesBig))
 	$remainingEdges: List() from collect (Edge(this not memberOf $edgesSmall) from $edgesBig)
-	
 then
 	insert(new Exactly($remainingEdges, $bigYeses - $smallYeses, $big));
+end
+
+rule "AtMost overlaps AtLeast"
+when
+	not EdgeSetting()
+	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
+	$b: AtLeast(
+		$edgesB: edges,
+		$bYeses: expectedYeses,
+		expectedYeses > $aYeses
+	)
+	exists Edge(this memberOf $edgesA, this memberOf $edgesB)
+	exists Edge(this memberOf $edgesA, this not memberOf $edgesB)
+	exists Edge(this memberOf $edgesB, this not memberOf $edgesA)
+	$commonEdges: Set(size > $aYeses) from collect (Edge(this memberOf $edgesA) from $edgesB)
+then
+	insert(atMost($aYeses).amongEdges($commonEdges));
+end
+
+rule "AtLeast contains AtMost"
+when
+	not EdgeSetting()
+	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
+	$b: AtLeast(
+		$edgesB: edges,
+		$bYeses: expectedYeses,
+		expectedYeses > $aYeses,
+		edges.size > $edgesA.size
+	)
+	// all edges of the AtMost are within the AtLeast
+	not Edge(this memberOf $edgesA, this not memberOf $edgesB)
+	$remainingEdges: Set() from collect (Edge(this not memberOf $edgesA) from $edgesB)
+then
+	insert(atLeast($bYeses - $aYeses).amongEdges($remainingEdges));
 end
 
 query getMoves ()
