@@ -6,6 +6,8 @@ import lombok.Data;
 
 import java.util.Set;
 
+import static com.github.sgtpuzzles.solvers.loopy.drools.Exactly.exactly;
+
 @Data
 public class CountOrNone {
 	private final Set<Edge> edges;
@@ -25,5 +27,9 @@ public class CountOrNone {
 
 	public boolean isAllOrNone() {
 		return edges.size() == expectedYeses;
+	}
+
+	public Exactly toExactly() {
+		return exactly(expectedYeses).amongEdges(edges);
 	}
 }

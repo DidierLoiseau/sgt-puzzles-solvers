@@ -291,6 +291,34 @@ public class LoopySolverTest {
 		assertNoDuplicateMoves(moves);
 	}
 
+	@Test
+	public void solveDetectsMandatoryCountOrNone() {
+		// given
+		var graph = generator.generate(4, 4);
+		var clues = parseClues("""
+				┌───┬───┬───┬───┐
+				│   ╎   │   │   │
+				├╌╌╌╆━━━┽───┼───┤
+				│   ┃ 3 │   │   │
+				├───╀───┼───╁───┤ // the CountOrNone for the central vertex is an exactly
+				│   │   │ 3 ┃   │ // both 3's should have their opposite corners set
+				├───┼───┾━━━╃╌╌╌┤
+				│   │   │   ╎   │
+				└───┴───┴───┴───┘
+				""");
+
+		// when25
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then we want the top-left corner to be set
+		assertThat(moves).contains(
+				new Move(graph.getFace(5).getEdge(0), LINE_YES),
+				new Move(graph.getFace(5).getEdge(3), LINE_YES),
+				new Move(graph.getFace(10).getEdge(1), LINE_YES),
+				new Move(graph.getFace(10).getEdge(2), LINE_YES));
+		assertNoDuplicateMoves(moves);
+	}
+
 	private void assertNoDuplicateMoves(List<Move> moves) {
 		moves.stream()
 				.collect(toMap(Move::getEdge, identity()));

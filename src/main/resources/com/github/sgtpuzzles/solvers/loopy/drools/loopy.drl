@@ -114,18 +114,6 @@ then
 	insert(new EdgeSetting($edge, LineStatus.LINE_NO));
 end
 
-rule "Simple Required Face Edges"
-when
-	not EdgeSetting()
-	CountOrNone(allOrNone, $edges: edges, $yeses: expectedYeses)
-	AtLeast($atLeastEdges: edges, edges.size - $yeses < expectedYeses)
-	forall($e: Edge(this memberOf $edges)
-	           Edge(this == $e, this memberOf $atLeastEdges))
-	$edge: Edge(this memberOf $edges)
-then
-	insert(new EdgeSetting($edge, LineStatus.LINE_YES));
-end
-
 rule "Simple Impossible Face Edges"
 when
 	not EdgeSetting()
@@ -139,6 +127,19 @@ then
 end
 
 // Rules that infer other facts
+rule "AtLeast overlaps mandatory CountOrNone"
+when
+	not EdgeSetting()
+	$con: CountOrNone($edges: edges)
+	AtLeast($atLeastEdges: edges, $atMostNos: expectedNos)
+	// count common edges: can we satisfy AtLeast if we remove the CountOrNone?
+	Set(size > $atMostNos)
+		from collect (Edge(this memberOf $edges) from $atLeastEdges)
+then
+	delete($con);
+	insert($con.toExactly());
+end
+
 rule "CountOrNone becomes none"
 when
 	$con: CountOrNone($edges: edges, edges.size() < expectedYeses)
@@ -152,19 +153,18 @@ when
 	not EdgeSetting()
 	$small: Exactly($edgesSmall: edges, $smallYeses: expectedYeses, expectedYeses > 0)
 	$big: Exactly(
-		this != $small.parent,
 		$edgesBig: edges,
 		$bigYeses: expectedYeses,
 		expectedYeses > 0,
 		$edgesSmall.size() < edges.size()
 	)
 	not(Edge(this memberOf $edgesSmall, this not memberOf $edgesBig))
-	$remainingEdges: List() from collect (Edge(this not memberOf $edgesSmall) from $edgesBig)
+	$remainingEdges: Set() from collect (Edge(this not memberOf $edgesSmall) from $edgesBig)
 then
-	insert(new Exactly($remainingEdges, $bigYeses - $smallYeses, $big));
+	insert(exactly($bigYeses - $smallYeses).amongEdges($remainingEdges));
 end
 
-rule "AtMost overlaps AtLeast"
+rule "AtMost overlaps AtLeast with more edges than its expected yeses"
 when
 	not EdgeSetting()
 	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
@@ -179,6 +179,24 @@ when
 	$commonEdges: Set(size > $aYeses) from collect (Edge(this memberOf $edgesA) from $edgesB)
 then
 	insert(atMost($aYeses).amongEdges($commonEdges));
+end
+
+rule "AtLeast overlaps AtMost with more edges than its expected nos"
+when
+	not EdgeSetting()
+	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
+	$b: AtLeast(
+		$edgesB: edges,
+		$bYeses: expectedYeses,
+		$bNos: expectedNos,
+		expectedNos > 0
+	)
+	exists Edge(this memberOf $edgesA, this memberOf $edgesB)
+	exists Edge(this memberOf $edgesA, this not memberOf $edgesB)
+	exists Edge(this memberOf $edgesB, this not memberOf $edgesA)
+	$commonEdges: Set(size > $bNos) from collect (Edge(this memberOf $edgesA) from $edgesB)
+then
+	insert(atLeast($commonEdges.size() - $bNos).amongEdges($commonEdges));
 end
 
 rule "AtLeast contains AtMost"
@@ -196,6 +214,23 @@ when
 	$remainingEdges: Set() from collect (Edge(this not memberOf $edgesA) from $edgesB)
 then
 	insert(atLeast($bYeses - $aYeses).amongEdges($remainingEdges));
+end
+
+rule "AtMost contains AtLeast"
+when
+	not EdgeSetting()
+	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
+	$b: AtLeast(
+		$edgesB: edges,
+		$bYeses: expectedYeses,
+		edges.size < $edgesA.size,
+		expectedYeses > 0
+	)
+	// all edges of the AtLeast are within the AtMost
+	not Edge(this not memberOf $edgesA, this memberOf $edgesB)
+	$remainingEdges: Set() from collect (Edge(this not memberOf $edgesB) from $edgesA)
+then
+	insert(atMost($aYeses - $bYeses).amongEdges($remainingEdges));
 end
 
 query getMoves ()

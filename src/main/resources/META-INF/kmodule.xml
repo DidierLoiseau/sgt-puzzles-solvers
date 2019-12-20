@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<kmodule xmlns="http://www.drools.org/xsd/kmodule" />
+<kmodule xmlns="http://www.drools.org/xsd/kmodule">
+	<kbase name="loopy" default="true" equalsBehavior="equality">
+		<ksession name="LoopySession" type="stateful" default="true"/>
+	</kbase>
+</kmodule>
