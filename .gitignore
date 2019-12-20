@@ -7,5 +7,9 @@
 # build files
 /target/
 
+# debug files
+*.log
+
 # saved games
 *.sav
+*.solved
