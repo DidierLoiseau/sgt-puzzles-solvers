@@ -36,10 +36,7 @@ public class DeserializeData {
 		try (var lines = Files.lines(save)) {
 			return lines
 					.map(DeserializeData::parseLine)
-					.collect(collectingAndThen(
-							toList(),
-							DeserializeData::from)
-					);
+					.collect(collectingAndThen(toList(), DeserializeData::from));
 		}
 	}
 
@@ -49,7 +46,8 @@ public class DeserializeData {
 	}
 
 	private static DeserializeData from(List<DeserializeLine> lines) {
-		var linesByIsMove = lines.stream().collect(partitioningBy(DeserializeData::isMove, toCollection(ArrayList::new)));
+		var linesByIsMove = lines.stream()
+				.collect(partitioningBy(DeserializeData::isMove, toCollection(ArrayList::new)));
 		var data = linesByIsMove.get(false).stream()
 				.collect(toMap(
 						DeserializeLine::getKey,
@@ -75,7 +73,7 @@ public class DeserializeData {
 		this.moves.addAll(moves);
 		var movePos = Integer.toString(moves.size() + 1);
 		data.get(SaveKeys.NSTATES.name()).setValue(movePos);
-		data.get(SaveKeys.STATEPOS.name()).setValue("1");
+		data.get(SaveKeys.STATEPOS.name()).setValue(movePos);
 	}
 }
 
