@@ -11,6 +11,8 @@ import java.util.regex.Pattern;
 import static com.github.sgtpuzzles.solvers.loopy.LineStatus.LINE_NO;
 import static com.github.sgtpuzzles.solvers.loopy.LineStatus.LINE_YES;
 import static java.lang.Integer.parseInt;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /*
@@ -68,6 +70,7 @@ public class LoopySolverTest {
 				graph.getEdges().stream()
 						.map(e -> new Move(e, LINE_YES))
 						.toArray(Move[]::new));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -84,6 +87,7 @@ public class LoopySolverTest {
 				graph.getFace(0).getEdges().stream()
 						.map(e -> new Move(e, LINE_NO))
 						.toArray(Move[]::new));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -108,6 +112,7 @@ public class LoopySolverTest {
 				new Move(graph.getFace(1).getEdge(1), LINE_NO),
 				new Move(graph.getFace(2).getEdge(2), LINE_NO),
 				new Move(graph.getFace(2).getEdge(3), LINE_NO));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -132,6 +137,7 @@ public class LoopySolverTest {
 				new Move(graph.getFace(3).getEdge(3), LINE_YES),
 				new Move(graph.getFace(5).getEdge(0), LINE_YES),
 				new Move(graph.getFace(5).getEdge(1), LINE_YES));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -153,6 +159,7 @@ public class LoopySolverTest {
 
 		// then we want to remove the edge at the right of the middle cell
 		assertThat(moves).contains(new Move(graph.getFace(4).getEdge(1), LINE_NO));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -186,6 +193,7 @@ public class LoopySolverTest {
 				new Move(graph.getFace(25).getEdge(1), LINE_NO),
 				new Move(graph.getFace(25).getEdge(2), LINE_YES),
 				new Move(graph.getFace(25).getEdge(3), LINE_NO));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -207,6 +215,7 @@ public class LoopySolverTest {
 		assertThat(moves).contains(
 				new Move(graph.getFace(0).getEdge(0), LINE_YES),
 				new Move(graph.getFace(0).getEdge(3), LINE_YES));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -228,6 +237,7 @@ public class LoopySolverTest {
 		assertThat(moves).contains(
 				new Move(graph.getFace(0).getEdge(0), LINE_NO),
 				new Move(graph.getFace(0).getEdge(3), LINE_NO));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -251,6 +261,7 @@ public class LoopySolverTest {
 		assertThat(moves).contains(
 				new Move(graph.getFace(1).getEdge(1), LINE_YES),
 				new Move(graph.getFace(1).getEdge(2), LINE_YES));
+		assertNoDuplicateMoves(moves);
 	}
 
 	@Test
@@ -277,6 +288,12 @@ public class LoopySolverTest {
 				new Move(graph.getFace(7).getEdge(0), LINE_YES),
 				new Move(graph.getFace(7).getEdge(1), LINE_YES),
 				new Move(graph.getFace(10).getEdge(1), LINE_NO));
+		assertNoDuplicateMoves(moves);
+	}
+
+	private void assertNoDuplicateMoves(List<Move> moves) {
+		moves.stream()
+				.collect(toMap(Move::getEdge, identity()));
 	}
 
 	private Map<Integer, Integer> parseClues(String visual) {
