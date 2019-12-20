@@ -105,6 +105,7 @@ rule "Prevent closing isolated loop"
 when
 	not EdgeSetting()
 	$edge: Edge($v1: vertex1, $v2: vertex2)
+	not Move(edge == $edge)
 	ContinuousLine(edges not contains $edge, // ignore 1-edge line
 		ends contains $v1, ends contains $v2)
 	// this incidentally covers the case of remaining other ContinuousLines
