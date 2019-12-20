@@ -1,5 +1,6 @@
 package com.github.sgtpuzzles.solvers.loopy.drools;
 
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
@@ -9,6 +10,7 @@ public interface AtMost extends EdgeRestriction {
 	}
 }
 
+@EqualsAndHashCode(callSuper = true)
 @SuperBuilder
 @ToString(callSuper = true)
 class AtMostImpl extends AbstractEdgeRestriction implements AtMost {
