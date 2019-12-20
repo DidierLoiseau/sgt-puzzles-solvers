@@ -11,6 +11,8 @@ import function com.github.sgtpuzzles.solvers.loopy.drools.AtMost.atMost
 import function com.github.sgtpuzzles.solvers.loopy.drools.AtLeast.atLeast
 import function com.github.sgtpuzzles.solvers.loopy.drools.Exactly.exactly
 
+global org.slf4j.Logger log
+
 // Rules that work based on EdgeSettings
 rule "Remove set edge from EdgeRestriction"
 when
