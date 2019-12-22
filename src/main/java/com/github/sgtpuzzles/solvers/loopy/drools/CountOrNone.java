@@ -6,7 +6,8 @@ import lombok.Data;
 
 import java.util.Set;
 
-import static com.github.sgtpuzzles.solvers.loopy.drools.Exactly.exactly;
+import static com.github.sgtpuzzles.solvers.loopy.drools.AtLeast.atLeast;
+import static com.github.sgtpuzzles.solvers.loopy.drools.AtMost.atMost;
 
 @Data
 public class CountOrNone {
@@ -19,7 +20,7 @@ public class CountOrNone {
 				throw new IllegalArgumentException("This Excatly does not contain setting's edge " + setting.getEdge());
 			}
 		} else {
-			// Rule "CountOrNone becomes count" should replace this fact by an Exactly
+			// Rule "CountOrNone becomes count" should replace this fact by AtLeast + AtMost
 			// This should not be called.
 			throw new IllegalArgumentException("Cannot remove edge for LINE_YES");
 		}
@@ -29,7 +30,11 @@ public class CountOrNone {
 		return edges.size() == expectedYeses;
 	}
 
-	public Exactly toExactly() {
-		return exactly(expectedYeses).amongEdges(edges);
+	public AtLeast toAtLeast() {
+		return atLeast(expectedYeses).amongEdges(edges);
+	}
+
+	public AtMost toAtMost() {
+		return atMost(expectedYeses).amongEdges(edges);
 	}
 }

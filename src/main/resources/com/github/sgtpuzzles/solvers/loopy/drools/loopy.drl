@@ -9,7 +9,6 @@ import com.github.sgtpuzzles.solvers.loopy.Move
 
 import function com.github.sgtpuzzles.solvers.loopy.drools.AtMost.atMost
 import function com.github.sgtpuzzles.solvers.loopy.drools.AtLeast.atLeast
-import function com.github.sgtpuzzles.solvers.loopy.drools.Exactly.exactly
 
 global org.slf4j.Logger log
 
@@ -20,6 +19,10 @@ when
 	$er : EdgeRestriction(edges contains $edge)
 then
 	modify($er) { recordSetting($es) }
+	if ($er instanceof AtLeast && $er.getExpectedYeses() <= 0
+		|| $er instanceof AtMost && $er.getExpectedNos() <= 0) {
+		delete($er);
+	}
 end
 
 rule "CountOrNone becomes count"
@@ -28,7 +31,8 @@ when
 	$con: CountOrNone($edges: edges, edges contains $edge)
 then
 	delete($con);
-	insert(exactly($con.getExpectedYeses()).amongEdges($edges));
+	insert($con.toAtLeast());
+	insert($con.toAtMost());
 end
 
 rule "CountOrNone remove unset edge"
@@ -86,19 +90,19 @@ end
 rule "AtLeast requires all set"
 when
 	not EdgeSetting()
-    $edge : Edge()
-    $ex : AtLeast(expectedYeses == edges.size(), edges contains $edge)
+	$al : AtLeast(expectedYeses == edges.size(), $edges: edges)
 then
-    insert(new EdgeSetting($edge, LineStatus.LINE_YES));
+	delete($al);
+	$edges.forEach(e -> insert(new EdgeSetting((Edge) e, LineStatus.LINE_YES)));
 end
 
 rule "AtMost requires none set"
 when
 	not EdgeSetting()
-    $edge : Edge()
-    $ex : AtMost(expectedYeses == 0, edges contains $edge)
+	$am : AtMost(expectedYeses == 0, $edges: edges)
 then
-    insert(new EdgeSetting($edge, LineStatus.LINE_NO));
+	delete($am);
+	$edges.forEach(e -> insert(new EdgeSetting((Edge) e, LineStatus.LINE_NO)));
 end
 
 rule "Prevent closing isolated loop"
@@ -137,7 +141,8 @@ when
 		from collect (Edge(this memberOf $edges) from $atLeastEdges)
 then
 	delete($con);
-	insert($con.toExactly());
+	insert($con.toAtLeast());
+	insert($con.toAtMost());
 end
 
 rule "CountOrNone becomes none"
@@ -146,22 +151,6 @@ when
 then
 	delete($con);
 	insert(atMost(0).amongEdges($edges));
-end
-
-rule "Nested Exactly's"
-when
-	not EdgeSetting()
-	$small: Exactly($edgesSmall: edges, $smallYeses: expectedYeses, expectedYeses > 0)
-	$big: Exactly(
-		$edgesBig: edges,
-		$bigYeses: expectedYeses,
-		expectedYeses > 0,
-		$edgesSmall.size() < edges.size()
-	)
-	not(Edge(this memberOf $edgesSmall, this not memberOf $edgesBig))
-	$remainingEdges: Set() from collect (Edge(this not memberOf $edgesSmall) from $edgesBig)
-then
-	insert(exactly($bigYeses - $smallYeses).amongEdges($remainingEdges));
 end
 
 rule "AtMost overlaps AtLeast with more edges than its expected yeses"
@@ -224,7 +213,9 @@ when
 		$edgesB: edges,
 		$bYeses: expectedYeses,
 		edges.size < $edgesA.size,
-		expectedYeses > 0
+		expectedYeses > 0,
+		// remaining edges cannot all be yeses to still satisfsy both
+		$edgesA.size - edges.size > $aYeses - expectedYeses
 	)
 	// all edges of the AtLeast are within the AtMost
 	not Edge(this not memberOf $edgesA, this memberOf $edgesB)
@@ -233,6 +224,7 @@ then
 	insert(atMost($aYeses - $bYeses).amongEdges($remainingEdges));
 end
 
+// queries
 query getMoves ()
 	$move: Move()
 end
