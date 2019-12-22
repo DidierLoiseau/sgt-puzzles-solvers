@@ -2,7 +2,6 @@ package com.github.sgtpuzzles.solvers.loopy;
 
 import com.github.sgtpuzzles.grid.model.Graph;
 import com.github.sgtpuzzles.solvers.loopy.drools.CountOrNone;
-import com.github.sgtpuzzles.solvers.loopy.drools.Exactly;
 import lombok.extern.slf4j.Slf4j;
 import org.drools.core.command.runtime.rule.QueryCommand;
 import org.kie.api.KieServices;
@@ -14,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
+import static com.github.sgtpuzzles.solvers.loopy.drools.AtLeast.atLeast;
+import static com.github.sgtpuzzles.solvers.loopy.drools.AtMost.atMost;
 import static java.util.stream.Collectors.toList;
 import static org.kie.internal.logger.KnowledgeRuntimeLoggerFactory.newFileLogger;
 
@@ -35,13 +36,15 @@ public class LoopySolver {
 
 		graph.getFaces().stream()
 				.filter(f -> clues.containsKey(f.getId()))
-				.map(f -> new Exactly(f.getEdges(), clues.get(f.getId())))
-				.forEach(kieSession::insert);
+				.forEach(f -> {
+					int clue = clues.get(f.getId());
+					kieSession.insert(atLeast(clue).amongEdges(f.getEdges()));
+					kieSession.insert(atMost(clue).amongEdges(f.getEdges()));
+				});
 
 		KieRuntimeLogger logger = log.isTraceEnabled()
 				? newFileLogger(kieSession, "drools")
-				: () -> {
-		};
+				: () -> {};
 		try {
 			kieSession.fireAllRules();
 		} catch (Exception e) {
