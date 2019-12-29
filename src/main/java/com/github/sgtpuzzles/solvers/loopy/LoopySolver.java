@@ -38,7 +38,10 @@ public class LoopySolver {
 				.filter(f -> clues.containsKey(f.getId()))
 				.forEach(f -> {
 					int clue = clues.get(f.getId());
-					kieSession.insert(atLeast(clue).amongEdges(f.getEdges()));
+					if (clue > 0) {
+						// no point inserting "at least 0" clues
+						kieSession.insert(atLeast(clue).amongEdges(f.getEdges()));
+					}
 					kieSession.insert(atMost(clue).amongEdges(f.getEdges()));
 				});
 
