@@ -208,7 +208,7 @@ public class LoopySolverTest {
 				└───┴───┘
 				""");
 
-		// when25
+		// when
 		List<Move> moves = solver.solve(graph, clues);
 
 		// then we want the top-left corner to be set
@@ -230,7 +230,7 @@ public class LoopySolverTest {
 				└───┴───┘
 				""");
 
-		// when25
+		// when
 		List<Move> moves = solver.solve(graph, clues);
 
 		// then we want the top left corner to be removed
@@ -254,10 +254,10 @@ public class LoopySolverTest {
 				└───┴───┴───┘
 				""");
 
-		// when25
+		// when
 		List<Move> moves = solver.solve(graph, clues);
 
-		// then we want the top-left corner to be set
+		// then
 		assertThat(moves).contains(
 				new Move(graph.getFace(1).getEdge(1), LINE_YES),
 				new Move(graph.getFace(1).getEdge(2), LINE_YES));
@@ -280,10 +280,10 @@ public class LoopySolverTest {
 				        └───┴───┘
 				""");
 
-		// when25
+		// when
 		List<Move> moves = solver.solve(graph, clues);
 
-		// then we want the top-left corner to be set
+		// then
 		assertThat(moves).contains(
 				new Move(graph.getFace(7).getEdge(0), LINE_YES),
 				new Move(graph.getFace(7).getEdge(1), LINE_YES),
@@ -307,10 +307,10 @@ public class LoopySolverTest {
 				└───┴───┴───┴───┘
 				""");
 
-		// when25
+		// when
 		List<Move> moves = solver.solve(graph, clues);
 
-		// then we want the top-left corner to be set
+		// then
 		assertThat(moves).contains(
 				new Move(graph.getFace(5).getEdge(0), LINE_YES),
 				new Move(graph.getFace(5).getEdge(3), LINE_YES),

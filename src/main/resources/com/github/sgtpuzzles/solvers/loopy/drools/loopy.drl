@@ -30,7 +30,7 @@ end
 rule "CountOrNone becomes count"
 when
 	$es : EdgeSetting($edge: edge, status == LineStatus.LINE_YES)
-	$con: CountOrNone($edges: edges, edges contains $edge)
+	$con: CountOrNone(edges contains $edge)
 then
 	convertToCount(drools, $con);
 end
@@ -38,7 +38,7 @@ end
 rule "CountOrNone remove unset edge"
 when
 	$es : EdgeSetting($edge: edge, status == LineStatus.LINE_NO)
-	$con: CountOrNone($edges: edges, edges contains $edge)
+	$con: CountOrNone(edges contains $edge)
 then
 	modify($con) { recordSetting($es) }
 end
@@ -58,7 +58,7 @@ when
 	$es  : EdgeSetting($edge: edge, $v1: edge.vertex1, $v2: edge.vertex2, status == LineStatus.LINE_YES)
 	$line: ContinuousLine(ends contains $v1 || ends contains $v2, edges not contains $edge)
 	// not merging two lines
-	not(ContinuousLine(this != $line, ends contains $v1 || ends contains $v2))
+	not ContinuousLine(this != $line, ends contains $v1 || ends contains $v2)
 then
 	modify($line) { extendWith($edge) };
 end
@@ -67,7 +67,7 @@ rule "Init ContinuousLine"
 when
 	$es  : EdgeSetting($edge: edge, $v1: edge.vertex1, $v2: edge.vertex2, status == LineStatus.LINE_YES)
 	// no continuous line with the edge and no possibility to merge or extend a continuous line
-	not(ContinuousLine(edges contains $edge || ends contains $v1 || ends contains $v2))
+	not ContinuousLine(edges contains $edge || ends contains $v1 || ends contains $v2)
 then
 	insert(new ContinuousLine($edge));
 end
@@ -109,10 +109,9 @@ when
 	not EdgeSetting()
 	$edge: Edge($v1: vertex1, $v2: vertex2)
 	not Move(edge == $edge)
-	ContinuousLine(edges not contains $edge, // ignore 1-edge line
-		ends contains $v1, ends contains $v2)
+	ContinuousLine(ends contains $v1, ends contains $v2)
 	// this incidentally covers the case of remaining other ContinuousLines
-	AtLeast(expectedYeses > 1 || edges not contains $edge && expectedYeses > 0)
+	exists AtLeast(expectedYeses > 1 || expectedYeses > 0 && edges not contains $edge)
 then
 	insert(new EdgeSetting($edge, LineStatus.LINE_NO));
 end
@@ -122,8 +121,7 @@ when
 	not EdgeSetting()
 	$con: CountOrNone(allOrNone, $edges: edges, $yeses: expectedYeses)
 	AtMost($atMostEdges: edges, $yeses > expectedYeses)
-	forall($e: Edge(this memberOf $edges)
-	           Edge(this == $e, this memberOf $atMostEdges))
+	not Edge(this memberOf $edges, this not memberOf $atMostEdges)
 then
 	convertToNone(drools, $con);
 end
@@ -143,7 +141,7 @@ end
 
 rule "CountOrNone becomes none"
 when
-	$con: CountOrNone($edges: edges, edges.size() < expectedYeses)
+	$con: CountOrNone($edges: edges, edges.size < expectedYeses)
 then
 	convertToNone(drools, $con);
 end
@@ -151,72 +149,68 @@ end
 rule "AtMost overlaps AtLeast with more edges than its expected yeses"
 when
 	not EdgeSetting()
-	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
-	$b: AtLeast(
+	$am: AtMost($edgesA: edges, $amYeses: expectedYeses > 0)
+	$al: AtLeast(
 		$edgesB: edges,
-		$bYeses: expectedYeses,
-		expectedYeses > $aYeses
+		$alYeses: expectedYeses > $amYeses
 	)
 	exists Edge(this memberOf $edgesA, this memberOf $edgesB)
 	exists Edge(this memberOf $edgesA, this not memberOf $edgesB)
 	exists Edge(this memberOf $edgesB, this not memberOf $edgesA)
-	$commonEdges: Set(size > $aYeses) from collect (Edge(this memberOf $edgesA) from $edgesB)
+	$commonEdges: Set(size > $amYeses) from collect (Edge(this memberOf $edgesA) from $edgesB)
 then
-	insert(atMost($aYeses).amongEdges($commonEdges));
+	insert(atMost($amYeses).amongEdges($commonEdges));
 end
 
 rule "AtLeast overlaps AtMost with more edges than its expected nos"
 when
 	not EdgeSetting()
-	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
-	$b: AtLeast(
+	$am: AtMost($edgesA: edges, $amYeses: expectedYeses, expectedYeses > 0)
+	$al: AtLeast(
 		$edgesB: edges,
-		$bYeses: expectedYeses,
-		$bNos: expectedNos,
-		expectedNos > 0
+		$alYeses: expectedYeses,
+		$alNos: expectedNos > 0
 	)
 	exists Edge(this memberOf $edgesA, this memberOf $edgesB)
 	exists Edge(this memberOf $edgesA, this not memberOf $edgesB)
 	exists Edge(this memberOf $edgesB, this not memberOf $edgesA)
-	$commonEdges: Set(size > $bNos) from collect (Edge(this memberOf $edgesA) from $edgesB)
+	$commonEdges: Set(size > $alNos) from collect (Edge(this memberOf $edgesA) from $edgesB)
 then
-	insert(atLeast($commonEdges.size() - $bNos).amongEdges($commonEdges));
+	insert(atLeast($commonEdges.size() - $alNos).amongEdges($commonEdges));
 end
 
 rule "AtLeast contains AtMost"
 when
 	not EdgeSetting()
-	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
-	$b: AtLeast(
+	$am: AtMost($edgesA: edges, $amYeses: expectedYeses, expectedYeses > 0)
+	$al: AtLeast(
 		$edgesB: edges,
-		$bYeses: expectedYeses,
-		expectedYeses > $aYeses,
+		$alYeses: expectedYeses > $amYeses,
 		edges.size > $edgesA.size
 	)
 	// all edges of the AtMost are within the AtLeast
 	not Edge(this memberOf $edgesA, this not memberOf $edgesB)
 	$remainingEdges: Set() from collect (Edge(this not memberOf $edgesA) from $edgesB)
 then
-	insert(atLeast($bYeses - $aYeses).amongEdges($remainingEdges));
+	insert(atLeast($alYeses - $amYeses).amongEdges($remainingEdges));
 end
 
 rule "AtMost contains AtLeast"
 when
 	not EdgeSetting()
-	$a: AtMost($edgesA: edges, $aYeses: expectedYeses, expectedYeses > 0)
-	$b: AtLeast(
+	$am: AtMost($edgesA: edges, $amYeses: expectedYeses, expectedYeses > 0)
+	$al: AtLeast(
 		$edgesB: edges,
-		$bYeses: expectedYeses,
+		$alYeses: expectedYeses > 0,
 		edges.size < $edgesA.size,
-		expectedYeses > 0,
 		// remaining edges cannot all be yeses to still satisfsy both
-		$edgesA.size - edges.size > $aYeses - expectedYeses
+		$edgesA.size - edges.size > $amYeses - expectedYeses
 	)
 	// all edges of the AtLeast are within the AtMost
 	not Edge(this not memberOf $edgesA, this memberOf $edgesB)
 	$remainingEdges: Set() from collect (Edge(this not memberOf $edgesB) from $edgesA)
 then
-	insert(atMost($aYeses - $bYeses).amongEdges($remainingEdges));
+	insert(atMost($amYeses - $alYeses).amongEdges($remainingEdges));
 end
 
 // functions
