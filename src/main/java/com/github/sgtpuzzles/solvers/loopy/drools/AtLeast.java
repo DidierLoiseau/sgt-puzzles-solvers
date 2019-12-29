@@ -4,7 +4,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-public interface AtLeast extends EdgeRestriction {
+public interface AtLeast extends SimpleEdgeRestriction {
 	static AtLeastImpl.AtLeastImplBuilder<?, ?> atLeast(int expectedYeses) {
 		return AtLeastImpl.builder().expectedYeses(expectedYeses);
 	}
@@ -13,5 +13,5 @@ public interface AtLeast extends EdgeRestriction {
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
 @ToString(callSuper = true)
-class AtLeastImpl extends AbstractEdgeRestriction implements AtLeast {
+class AtLeastImpl extends AbstractSimpleEdgeRestriction implements AtLeast {
 }

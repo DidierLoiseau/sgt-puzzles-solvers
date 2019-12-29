@@ -2,18 +2,23 @@ package com.github.sgtpuzzles.solvers.loopy.drools;
 
 import com.github.sgtpuzzles.grid.model.Edge;
 import com.github.sgtpuzzles.solvers.loopy.LineStatus;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Set;
 
 import static com.github.sgtpuzzles.solvers.loopy.drools.AtLeast.atLeast;
 import static com.github.sgtpuzzles.solvers.loopy.drools.AtMost.atMost;
 
-@Data
-public class CountOrNone {
-	private final Set<Edge> edges;
-	private final int expectedYeses;
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class CountOrNone extends AbstractEdgeRestriction {
 
+	public CountOrNone(Set<Edge> edges, int expectedYeses) {
+		super(edges, expectedYeses);
+	}
+
+	@Override
 	public void recordSetting(EdgeSetting setting) {
 		if (setting.getStatus() == LineStatus.LINE_NO) {
 			if (!edges.remove(setting.getEdge())) {

@@ -1,7 +1,6 @@
 package com.github.sgtpuzzles.solvers.loopy.drools;
 
 import com.github.sgtpuzzles.grid.model.Edge;
-import com.github.sgtpuzzles.solvers.loopy.LineStatus;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -31,27 +30,4 @@ public abstract class AbstractEdgeRestriction implements EdgeRestriction {
 		log.debug("Created {}", this);
 	}
 
-	@Override
-	public int getExpectedNos() {
-		return edges.size() - expectedYeses;
-	}
-
-	@Override
-	public void recordSetting(EdgeSetting setting) {
-		log.debug("Removing {} from\n\t\t{}", setting.getEdge(), this);
-		if (!edges.remove(setting.getEdge())) {
-			throw new IllegalArgumentException(this + "\n did not contain setting's edge " + setting.getEdge());
-		}
-		if (setting.getStatus() == LineStatus.LINE_YES) {
-			expectedYeses--;
-		}
-	}
-
-	public static abstract class AbstractEdgeRestrictionBuilder<C extends AbstractEdgeRestriction, B extends AbstractEdgeRestrictionBuilder<C, B>> {
-		public C amongEdges(Collection<Edge> edges) {
-			var restriction = edges(new HashSet<>(edges)).build();
-			log.debug("Created {}", restriction);
-			return restriction;
-		}
-	}
 }

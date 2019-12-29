@@ -15,10 +15,10 @@ import function com.github.sgtpuzzles.solvers.loopy.drools.AtLeast.atLeast
 global org.slf4j.Logger log
 
 // Rules that work based on EdgeSettings
-rule "Remove set edge from EdgeRestriction"
+rule "Remove set edge from SimpleEdgeRestriction"
 when
 	$es : EdgeSetting($edge: edge)
-	$er : EdgeRestriction(edges contains $edge)
+	$er : SimpleEdgeRestriction(edges contains $edge)
 then
 	modify($er) { recordSetting($es) }
 	if ($er instanceof AtLeast && $er.getExpectedYeses() <= 0
@@ -78,7 +78,6 @@ when
 	$es : EdgeSetting($edge: edge)
 	// setting has been processed by all rules above
 	not EdgeRestriction(edges contains $edge)
-	not CountOrNone(edges contains $edge)
 	(ContinuousLine(edges contains $edge)
 		or EdgeSetting($es == this, status == LineStatus.LINE_NO))
 then
