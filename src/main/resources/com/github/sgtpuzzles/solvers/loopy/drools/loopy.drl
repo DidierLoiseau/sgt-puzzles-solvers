@@ -3,6 +3,8 @@ package com.github.sgtpuzzles.solvers.loopy.drools
 import java.util.List
 import java.util.Set
 
+import org.drools.core.spi.KnowledgeHelper
+
 import com.github.sgtpuzzles.grid.model.Edge
 import com.github.sgtpuzzles.solvers.loopy.LineStatus
 import com.github.sgtpuzzles.solvers.loopy.Move
@@ -30,9 +32,7 @@ when
 	$es : EdgeSetting($edge: edge, status == LineStatus.LINE_YES)
 	$con: CountOrNone($edges: edges, edges contains $edge)
 then
-	delete($con);
-	insert($con.toAtLeast());
-	insert($con.toAtMost());
+	convertToCount(drools, $con);
 end
 
 rule "CountOrNone remove unset edge"
@@ -121,13 +121,12 @@ end
 rule "Simple Impossible Face Edges"
 when
 	not EdgeSetting()
-	CountOrNone(allOrNone, $edges: edges, $yeses: expectedYeses)
+	$con: CountOrNone(allOrNone, $edges: edges, $yeses: expectedYeses)
 	AtMost($atMostEdges: edges, $yeses > expectedYeses)
 	forall($e: Edge(this memberOf $edges)
 	           Edge(this == $e, this memberOf $atMostEdges))
-	$edge: Edge(this memberOf $edges)
 then
-	insert(new EdgeSetting($edge, LineStatus.LINE_NO));
+	convertToNone(drools, $con);
 end
 
 // Rules that infer other facts
@@ -140,17 +139,14 @@ when
 	Set(size > $atMostNos)
 		from collect (Edge(this memberOf $edges) from $atLeastEdges)
 then
-	delete($con);
-	insert($con.toAtLeast());
-	insert($con.toAtMost());
+	convertToCount(drools, $con);
 end
 
 rule "CountOrNone becomes none"
 when
 	$con: CountOrNone($edges: edges, edges.size() < expectedYeses)
 then
-	delete($con);
-	insert(atMost(0).amongEdges($edges));
+	convertToNone(drools, $con);
 end
 
 rule "AtMost overlaps AtLeast with more edges than its expected yeses"
@@ -223,6 +219,26 @@ when
 then
 	insert(atMost($aYeses - $bYeses).amongEdges($remainingEdges));
 end
+
+// functions
+function void deleteCountOrNone(KnowledgeHelper drools, CountOrNone con) {
+	drools.delete(con);
+}
+
+function void convertToCount(KnowledgeHelper drools, CountOrNone con) {
+	deleteCountOrNone(drools, con);
+	if (con.isAllOrNone()) {
+		con.getEdges().forEach(e -> drools.insert(new EdgeSetting(e, LineStatus.LINE_YES)));
+	} else {
+		drools.insert(con.toAtLeast());
+		drools.insert(con.toAtMost());
+	}
+}
+
+function void convertToNone(KnowledgeHelper drools, CountOrNone con) {
+	deleteCountOrNone(drools, con);
+	con.getEdges().forEach(e -> drools.insert(new EdgeSetting(e, LineStatus.LINE_NO)));
+}
 
 // queries
 query getMoves ()
