@@ -59,6 +59,7 @@ public class Graph {
 		edges.stream()
 				.filter(e -> e.getFace2() == null)
 				.forEach(this::setOuterFace);
+		faces.add(outerFace);
 		return this;
 	}
 

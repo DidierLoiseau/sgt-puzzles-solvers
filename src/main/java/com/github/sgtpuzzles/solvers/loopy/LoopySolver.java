@@ -1,6 +1,7 @@
 package com.github.sgtpuzzles.solvers.loopy;
 
 import com.github.sgtpuzzles.grid.model.Graph;
+import com.github.sgtpuzzles.solvers.loopy.drools.ConnectedFacesGroup;
 import com.github.sgtpuzzles.solvers.loopy.drools.CountOrNone;
 import lombok.extern.slf4j.Slf4j;
 import org.drools.core.command.runtime.rule.QueryCommand;
@@ -34,6 +35,7 @@ public class LoopySolver {
 				.map(v -> new CountOrNone(new HashSet<>(v.getEdges().values()), 2))
 				.forEach(kieSession::insert);
 
+		graph.getFaces().forEach(f -> kieSession.insert(new ConnectedFacesGroup(f)));
 		graph.getFaces().stream()
 				.filter(f -> clues.containsKey(f.getId()))
 				.forEach(f -> {
@@ -50,6 +52,7 @@ public class LoopySolver {
 				: () -> {};
 		try {
 			kieSession.fireAllRules();
+			log.info("Finished.");
 		} catch (Exception e) {
 			log.error("Caught exception while processing rules", e);
 		} finally {

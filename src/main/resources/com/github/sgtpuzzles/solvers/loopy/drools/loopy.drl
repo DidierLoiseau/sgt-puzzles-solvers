@@ -80,9 +80,32 @@ when
 	not EdgeRestriction(edges contains $edge)
 	(ContinuousLine(edges contains $edge)
 		or EdgeSetting($es == this, status == LineStatus.LINE_NO))
+	$fg1: ConnectedFacesGroup(faces contains $edge.face1)
+	$fg2: ConnectedFacesGroup(faces contains $edge.face2)
 then
 	delete($es);
 	insert(new Move($es.getEdge(), $es.getStatus()));
+	if ($fg1 != $fg2 && $fg1 != $fg2.getOppositeGroup()) {
+		if ($es.getStatus() == LineStatus.LINE_NO) {
+			delete($fg2);
+			if ($fg1.mergeWith($fg2)) {
+				delete($fg2.getOppositeGroup());
+			}
+			update($fg1);
+			if ($fg1.getOppositeGroup() != null) {
+				update($fg1.getOppositeGroup());
+			}
+		} else {
+			if ($fg2.getOppositeGroup() != null) {
+				delete($fg2.getOppositeGroup());
+			}
+			if ($fg1.markAsOpposite($fg2)) {
+				delete($fg2);
+			}
+			update($fg1);
+			update($fg1.getOppositeGroup());
+		}
+	}
 end
 
 // Rules that infer EdgeSettings
@@ -124,6 +147,27 @@ when
 	not Edge(this memberOf $edges, this not memberOf $atMostEdges)
 then
 	convertToNone(drools, $con);
+end
+
+rule "Edge faces in opposite groups"
+when
+	not EdgeSetting()
+	$edge: Edge($f1: face1, $f2: face2)
+	not Move(edge == $edge)
+	$fg1 : ConnectedFacesGroup(faces contains $f1)
+	$fg2 : ConnectedFacesGroup(faces contains $f2, oppositeGroup == $fg1)
+then
+	insert(new EdgeSetting($edge, LineStatus.LINE_YES));
+end
+
+rule "Edge faces in same group"
+when
+	not EdgeSetting()
+	$edge: Edge($f1: face1, $f2: face2)
+	not Move(edge == $edge)
+	$fg1 : ConnectedFacesGroup(faces contains $f1, faces contains $f2)
+then
+	insert(new EdgeSetting($edge, LineStatus.LINE_NO));
 end
 
 // Rules that infer other facts
