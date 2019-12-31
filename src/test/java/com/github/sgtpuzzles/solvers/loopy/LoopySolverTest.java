@@ -319,6 +319,58 @@ public class LoopySolverTest {
 		assertNoDuplicateMoves(moves);
 	}
 
+	@Test
+	public void solveDetectsInsideAndOutside() {
+		// given
+		var graph = generator.generate(3, 3);
+		var clues = parseClues("""
+				    ┏━━━┭───┐
+				    ┃   │   │
+				┏━━━┛   └───┧
+				┃ 3   0     ╏ // must detect that face 5 is inside,
+				┗━━━┓   ┌───┦ // so its right edge must be set
+				    ┃   │   │
+				    ┗━━━┵───┘
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then
+		assertThat(moves).contains(
+				new Move(graph.getFace(5).getEdge(1), LINE_YES));
+		assertNoDuplicateMoves(moves);
+	}
+
+	@Test
+	public void solveDetectsBothInsideOrOutside() {
+		// given
+		var graph = generator.generate(4, 5);
+		var clues = parseClues("""
+				┌───┬───┬───┬───┐
+				│   │   │   │   │
+				└───╁───╁───┴───┘
+				    ┃   ┃       ╎
+				┏━━━┛   ┗━━━┓   ╎
+				┃ 3   0   3 ┃   ╎ // these 3 edges connect 2 outside faces
+				┗━━━┓   ┏━━━┛   ╎
+				    ┃   ┃       ╎
+				┌───╀───╀───┬───┐
+				│   │   │   │   │
+				└───┴───┴───┴───┘
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then
+		assertThat(moves).contains(
+				new Move(graph.getFace(7).getEdge(1), LINE_NO),
+				new Move(graph.getFace(11).getEdge(1), LINE_NO),
+				new Move(graph.getFace(15).getEdge(1), LINE_NO));
+		assertNoDuplicateMoves(moves);
+	}
+
 	private void assertNoDuplicateMoves(List<Move> moves) {
 		moves.stream()
 				.collect(toMap(Move::getEdge, identity()));
