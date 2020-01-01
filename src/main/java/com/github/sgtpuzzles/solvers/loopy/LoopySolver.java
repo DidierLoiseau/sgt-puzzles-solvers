@@ -1,6 +1,7 @@
 package com.github.sgtpuzzles.solvers.loopy;
 
 import com.github.sgtpuzzles.grid.model.Graph;
+import com.github.sgtpuzzles.solvers.loopy.drools.AssociatedEdgesGroup;
 import com.github.sgtpuzzles.solvers.loopy.drools.ConnectedFacesGroup;
 import com.github.sgtpuzzles.solvers.loopy.drools.CountOrNone;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,9 @@ public class LoopySolver {
 		kieSession.setGlobal("log", log);
 
 		graph.getEdges().forEach(kieSession::insert);
+		graph.getEdges().stream()
+				.map(AssociatedEdgesGroup::new)
+				.forEach(kieSession::insert);
 
 		graph.getVertices().values().stream()
 				.map(v -> new CountOrNone(new HashSet<>(v.getEdges().values()), 2))
