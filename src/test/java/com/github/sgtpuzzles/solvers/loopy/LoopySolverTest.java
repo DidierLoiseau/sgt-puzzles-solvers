@@ -371,6 +371,85 @@ public class LoopySolverTest {
 		assertNoDuplicateMoves(moves);
 	}
 
+	@Test
+	public void solveDetectsComplementaryAllOrNones() {
+		// given
+		var graph = generator.generate(2, 2);
+		var clues = parseClues("""
+				┌───┮╍╍╍┓
+				│ 2 │   ╏ // The 2 can only be satisfied with either
+				┟───┼───┦ // the top-left or bottom-right corner.
+				╏   │   │ // This means the other 2 corners have an exiting line.
+				┗╍╍╍┵───┘
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then
+		assertThat(moves).contains(
+				new Move(graph.getFace(1).getEdge(0), LINE_YES),
+				new Move(graph.getFace(2).getEdge(3), LINE_YES));
+		assertNoDuplicateMoves(moves);
+	}
+
+	@Test
+	public void solveDetectsComplementaryAllOrNonesSingleSide() {
+		// given
+		var graph = generator.generate(4, 4);
+		var clues = parseClues("""
+				        ┌───┬───┐
+				  0     │   │   │
+				    ┌───┼───┼───┤
+				    │   │   │   │
+				┌───┼───┼───┼───┤
+				│ 2 │   │   │   │ // same as previous one but this time only one side
+				┟───┼───┼───┼───┤
+				╏   │   │   │   │
+				┗╍╍╍┵───┴───┴───┘
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then
+		assertThat(moves).contains(
+				new Move(graph.getFace(12).getEdge(3), LINE_YES));
+		assertNoDuplicateMoves(moves);
+	}
+
+	@Test
+	public void solveExtendsAllOrNoneOverMultipleFaces() {
+		// given
+		var graph = generator.generate(7, 7);
+		var clues = parseClues("""
+				        ┏━━━┓       ┌───┬───┐
+				  0     ┃   ┃       │   │   │
+				    ┌───┦   ┗━━━┓   ├───┼───┤
+				    │ 2 │ 1   3 ┃   │   │   │
+				┌───┼───┼───┮━━━┛   ├───┼───┤
+				│   │ 2 │   │       │   │   │
+				├───┼───┼───┘╌╌╌┌───┼───┼───┤
+				│ 2 │ 2 │   ╎ 1 │   │   │   │
+				┟───┼───┼───┬───┼───┼───┼───┤
+				┃ 3 │   │   │   │   │   │   │
+				┗━━━┽───┼───┼───┼───┼───┼───┤
+				    │   │   │   │   │   │   │
+				    └───┼───┼───┼───┼───┼───┤
+				  0     │   │   │   │   │   │
+				        └───┴───┴───┴───┴───┘
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then
+		assertThat(moves).contains(
+				new Move(graph.getFace(24).getEdge(0), LINE_NO),
+				new Move(graph.getFace(24).getEdge(3), LINE_NO));
+		assertNoDuplicateMoves(moves);
+	}
+
 	private void assertNoDuplicateMoves(List<Move> moves) {
 		moves.stream()
 				.collect(toMap(Move::getEdge, identity()));

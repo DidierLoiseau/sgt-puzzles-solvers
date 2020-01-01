@@ -4,6 +4,8 @@ import java.util.List
 import java.util.Set
 
 import org.drools.core.spi.KnowledgeHelper
+import org.drools.core.util.bitmask.AllSetButLastBitMask
+import org.kie.api.runtime.rule.FactHandle
 
 import com.github.sgtpuzzles.grid.model.Edge
 import com.github.sgtpuzzles.solvers.loopy.LineStatus
@@ -11,6 +13,8 @@ import com.github.sgtpuzzles.solvers.loopy.Move
 
 import function com.github.sgtpuzzles.solvers.loopy.drools.AtMost.atMost
 import function com.github.sgtpuzzles.solvers.loopy.drools.AtLeast.atLeast
+import function java.lang.Math.min
+import function java.lang.Math.max
 
 global org.slf4j.Logger log
 
@@ -25,6 +29,18 @@ then
 		|| $er instanceof AtMost && $er.getExpectedNos() <= 0) {
 		delete($er);
 	}
+end
+
+rule "Remove AssociatedEdgesGroup"
+when
+	$es : EdgeSetting($edge: edge)
+	$g  : AssociatedEdgesGroup($edges: edges contains $edge)
+	accumulate(EdgeSetting($ese: edge memberOf $edges); $allSetEdges: collectList($ese))
+then
+	delete($g);
+	$g.getEdges().stream()
+			.filter(e -> !$allSetEdges.contains(e))
+			.forEach(e -> insert(new EdgeSetting(e, $es.getStatus())));
 end
 
 rule "CountOrNone becomes count"
@@ -87,23 +103,9 @@ then
 	insert(new Move($es.getEdge(), $es.getStatus()));
 	if ($fg1 != $fg2 && $fg1 != $fg2.getOppositeGroup()) {
 		if ($es.getStatus() == LineStatus.LINE_NO) {
-			delete($fg2);
-			if ($fg1.mergeWith($fg2)) {
-				delete($fg2.getOppositeGroup());
-			}
-			update($fg1);
-			if ($fg1.getOppositeGroup() != null) {
-				update($fg1.getOppositeGroup());
-			}
+			mergeGroups(drools, $fg1, $fg1__Handle__, $fg2, $fg2__Handle__);
 		} else {
-			if ($fg2.getOppositeGroup() != null) {
-				delete($fg2.getOppositeGroup());
-			}
-			if ($fg1.markAsOpposite($fg2)) {
-				delete($fg2);
-			}
-			update($fg1);
-			update($fg1.getOppositeGroup());
+			markAsOpposite(drools, $fg1, $fg1__Handle__, $fg2, $fg2__Handle__);
 		}
 	}
 end
@@ -112,19 +114,19 @@ end
 rule "AtLeast requires all set"
 when
 	not EdgeSetting()
-	$al : AtLeast(expectedYeses == edges.size(), $edges: edges)
+	$al : AtLeast(expectedNos == 0)
 then
 	delete($al);
-	$edges.forEach(e -> insert(new EdgeSetting((Edge) e, LineStatus.LINE_YES)));
+	setAllEdges(drools, $al, LineStatus.LINE_YES);
 end
 
 rule "AtMost requires none set"
 when
 	not EdgeSetting()
-	$am : AtMost(expectedYeses == 0, $edges: edges)
+	$am : AtMost(expectedYeses == 0)
 then
 	delete($am);
-	$edges.forEach(e -> insert(new EdgeSetting((Edge) e, LineStatus.LINE_NO)));
+	setAllEdges(drools, $am, LineStatus.LINE_NO);
 end
 
 rule "Prevent closing isolated loop"
@@ -142,11 +144,11 @@ end
 rule "Simple Impossible Face Edges"
 when
 	not EdgeSetting()
-	$con: CountOrNone(allOrNone, $edges: edges, $yeses: expectedYeses)
-	AtMost($atMostEdges: edges, $yeses > expectedYeses)
-	not Edge(this memberOf $edges, this not memberOf $atMostEdges)
+	AtMost($amEdges: edges, $yeses: expectedYeses)
+	$eg: AssociatedEdgesGroup(edges.size > $yeses, $gEdges: edges)
+	Set(size > $yeses) from collect (Edge(this memberOf $gEdges) from $amEdges)
 then
-	convertToNone(drools, $con);
+	convertToNone(drools, $eg);
 end
 
 rule "Edge faces in opposite groups"
@@ -171,7 +173,23 @@ then
 end
 
 // Rules that infer other facts
+rule "Merge groups from all-or-none"
+when
+	not EdgeSetting()
+	$con: CountOrNone(allOrNone, $edges: edges)
+	$e1 : Edge() from $edges
+	$g1 : AssociatedEdgesGroup($gEdges: edges contains $e1)
+	$e2 : Edge(this not memberOf $gEdges) from $edges
+	$g2 : AssociatedEdgesGroup($e2 memberOf edges)
+then
+	mergeGroups(drools, $g1, $g1__Handle__, $g2, $g2__Handle__);
+	if ($gEdges.containsAll($edges)) {
+		delete($con);
+	}
+end
+
 rule "AtLeast overlaps mandatory CountOrNone"
+// still needed even with groups because of count-or-nones that aren't all-or-nones
 when
 	not EdgeSetting()
 	$con: CountOrNone($edges: edges)
@@ -183,8 +201,22 @@ then
 	convertToCount(drools, $con);
 end
 
+rule "AtLeast overlaps mandatory group"
+when
+	not EdgeSetting()
+	AtLeast($alEdges: edges, $nos: expectedNos)
+	$eg: AssociatedEdgesGroup(edges.size > $nos, $gEdges: edges)
+	// count common edges: can we satisfy AtLeast if we remove the group?
+	Set(size > $nos)
+		from collect (Edge(this memberOf $gEdges) from $alEdges)
+then
+	delete($eg);
+	setAllEdges(drools, $eg, LineStatus.LINE_YES);
+end
+
 rule "CountOrNone becomes none"
 when
+	not EdgeSetting()
 	$con: CountOrNone($edges: edges, edges.size < expectedYeses)
 then
 	convertToNone(drools, $con);
@@ -257,24 +289,134 @@ then
 	insert(atMost($amYeses - $alYeses).amongEdges($remainingEdges));
 end
 
+rule "Detect complementary all-or-nones"
+when
+	not EdgeSetting()
+	// there is an "exactly" that expects half of its edges to be set
+	AtMost($edges: edges, $yeses: expectedYeses * 2 == edges.size)
+	AtLeast(edges == $edges, expectedYeses == $yeses)
+	// there is a group overlapping with the same amount of edges
+	$g1: AssociatedEdgesGroup($g1Edges: edges, $opGroup: oppositeGroup)
+	Set(size == $yeses) from collect (Edge(this memberOf $g1Edges) from $edges)
+	// there is another group which is not the opposite group but has a common edge
+	$g2: AssociatedEdgesGroup(this != $g1, this != $opGroup, $g2Edges: edges)
+	exists Edge(this memberOf $edges, this memberOf $g2Edges)
+then
+	markAsOpposite(drools, $g1, $g1__Handle__, $g2, $g2__Handle__);
+end
+
+rule "Complementary group overlaps a CountOrNone"
+when
+	not EdgeSetting()
+	AssociatedEdgesGroup($edgesA: edges, $edgesB: oppositeGroup!.edges)
+	// the overlapping count-or-none
+	$overlap: CountOrNone($edgesO: edges)
+	Edge(this memberOf $edgesA, this memberOf $edgesO)
+	Edge(this memberOf $edgesB, this memberOf $edgesO)
+then
+	convertToCount(drools, $overlap);
+end
+
+rule "Complementary group overlaps AtLeast"
+when
+	not EdgeSetting()
+	AssociatedEdgesGroup($edgesA: edges, $edgesB: oppositeGroup!.edges)
+	// the overlapping AtLeast
+	$overlap: AtLeast($edgesAL: edges, $yeses: expectedYeses)
+	$overA: Set(size > 0) from collect (Edge(this memberOf $edgesA) from $edgesAL)
+	$overB: Set(size > 0, size < $yeses || $overA.size < $yeses) from collect (Edge(this memberOf $edgesB) from $edgesAL)
+	$remainingEdges: Set(size > 0) from collect (Edge(this not memberOf $edgesA, this not memberOf $edgesB) from $edgesAL)
+then
+	insert(atLeast($yeses - min($overA.size(), $overB.size())).amongEdges($remainingEdges));
+end
+
+/* not really necessary, at least for square grids
+rule "Complementary group overlaps AtMost"
+when
+	not EdgeSetting()
+	AssociatedEdgesGroup($edgesA: edges, $edgesB: oppositeGroup!.edges)
+	// the overlapping AtMost
+	$overlap: AtMost($edgesAM: edges, $yeses: expectedYeses)
+	$overA: Set(size > 0) from collect (Edge(this memberOf $edgesA) from $edgesAM)
+	$overB: Set(size > 0) from collect (Edge(this memberOf $edgesB) from $edgesAM)
+	$remainingEdges: Set(size > $yeses - min($overA.size, $overB.size)) from collect (Edge(this not memberOf $edgesA, this not memberOf $edgesB) from $edgesAM)
+then
+	insert(atMost($yeses - min($overA.size(), $overB.size())).amongEdges($remainingEdges));
+end
+*/
+
+rule "CountOrNone overlaps group with expected number of edges"
+when
+	not EdgeSetting()
+	// there is a count or none which has twice its expected number of edges
+	CountOrNone(!allOrNone, $cEdges: edges, $yeses: expectedYeses * 2 == edges.size)
+	// there is a group that covers half of the edges, i.e. the number of expected yeses
+	AssociatedEdgesGroup($gEdges: edges)
+	Set(size == $yeses) from collect (Edge(this memberOf $gEdges) from $cEdges)
+	// there remains edges which are not in the same group yet
+	$e1 : Edge(this memberOf $cEdges, this not memberOf $gEdges)
+	$e2 : Edge(this memberOf $cEdges, this not memberOf $gEdges)
+	$g1 : AssociatedEdgesGroup(edges contains $e1)
+	$g2 : AssociatedEdgesGroup(this != $g1, edges contains $e2)
+then
+	mergeGroups(drools, $g1, $g1__Handle__, $g2, $g2__Handle__);
+end
+
 // functions
-function void deleteCountOrNone(KnowledgeHelper drools, CountOrNone con) {
+function void deleteCountOrNone(KnowledgeHelper drools, EdgeRestriction con) {
 	drools.delete(con);
 }
 
 function void convertToCount(KnowledgeHelper drools, CountOrNone con) {
 	deleteCountOrNone(drools, con);
 	if (con.isAllOrNone()) {
-		con.getEdges().forEach(e -> drools.insert(new EdgeSetting(e, LineStatus.LINE_YES)));
+		setAllEdges(drools, con, LineStatus.LINE_YES);
 	} else {
 		drools.insert(con.toAtLeast());
 		drools.insert(con.toAtMost());
 	}
 }
 
-function void convertToNone(KnowledgeHelper drools, CountOrNone con) {
-	deleteCountOrNone(drools, con);
-	con.getEdges().forEach(e -> drools.insert(new EdgeSetting(e, LineStatus.LINE_NO)));
+function void convertToNone(KnowledgeHelper drools, EdgeRestriction r) {
+	deleteCountOrNone(drools, r);
+	setAllEdges(drools, r, LineStatus.LINE_NO);
+}
+
+function void setAllEdges(KnowledgeHelper drools, EdgeRestriction r, LineStatus s) {
+	r.getEdges().forEach(e -> drools.insert(new EdgeSetting(e, s)));
+}
+
+/**
+ * Merges two groups and then updates/delete them as needed.
+ */
+function void mergeGroups(KnowledgeHelper drools,
+		AssociatedObjectsGroup g1, FactHandle g1Handle,
+		AssociatedObjectsGroup g2, FactHandle g2Handle) {
+	if (g1.mergeWith(g2)) {
+		drools.delete(g2.getOppositeGroup());
+	}
+	if (g1.getOppositeGroup() != null) {
+		drools.update(g1.getOppositeGroup());
+	}
+	drools.update(g1Handle, AllSetButLastBitMask.get(), AssociatedObjectsGroup.class);
+	drools.delete(g2Handle);
+}
+
+/**
+ * Marks two groups as opposites and then updates/delete them as needed.
+ */
+function void markAsOpposite(
+		KnowledgeHelper drools,
+		AssociatedObjectsGroup g1, FactHandle g1Handle,
+		AssociatedObjectsGroup g2, FactHandle g2Handle) {
+	if (g2.getOppositeGroup() != null) {
+		drools.delete(g2.getOppositeGroup());
+	}
+	if (g1.markAsOpposite(g2)) {
+		drools.delete(g2Handle);
+	}
+	drools.update(g1Handle, AllSetButLastBitMask.get(), AssociatedObjectsGroup.class);
+	drools.update(g1.getOppositeGroup());
 }
 
 // queries
