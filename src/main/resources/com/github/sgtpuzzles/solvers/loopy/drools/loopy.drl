@@ -362,6 +362,26 @@ then
 	mergeGroups(drools, $g1, $g1__Handle__, $g2, $g2__Handle__);
 end
 
+rule "Two edges sharing the same face groups must be in the same group"
+when
+	not EdgeSetting()
+	$e1: Edge()
+	$e2: Edge(this != $e1)
+	(
+	($fg1: ConnectedFacesGroup(faces contains $e1.face1, faces contains $e2.face1)
+		and ConnectedFacesGroup(this != $fg1, faces contains $e1.face2,
+			faces contains $e2.face2))
+	or
+	($fg1: ConnectedFacesGroup(faces contains $e1.face1, faces contains $e2.face2)
+		and ConnectedFacesGroup(this != $fg1, faces contains $e1.face2,
+			faces contains $e2.face1))
+	)
+	$g1: AssociatedEdgesGroup(edges contains $e1)
+	$g2: AssociatedEdgesGroup(this != $g1, edges contains $e2)
+then
+	mergeGroups(drools, $g1, $g1__Handle__, $g2, $g2__Handle__);
+end
+
 // functions
 function void deleteCountOrNone(KnowledgeHelper drools, EdgeRestriction con) {
 	drools.delete(con);

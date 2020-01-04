@@ -450,6 +450,37 @@ public class LoopySolverTest {
 		assertNoDuplicateMoves(moves);
 	}
 
+	@Test
+	public void solveDetectsSameEdgeGroupBasedOnFaceGroups() {
+		// given
+		var graph = generator.generate(3, 1);
+		var clues = parseClues("""
+				┏╍╍╍╍╍╍╍╍╍╍╍┓
+				╏   ╎ 2 ╎   ╏
+				┗╍╍╍╍╍╍╍╍╍╍╍┛
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then
+		assertThat(moves).contains(
+				new Move(graph.getFace(0).getEdge(0), LINE_YES),
+				new Move(graph.getFace(0).getEdge(2), LINE_YES),
+				new Move(graph.getFace(0).getEdge(3), LINE_YES),
+
+				new Move(graph.getFace(1).getEdge(0), LINE_YES),
+				new Move(graph.getFace(1).getEdge(1), LINE_NO),
+				new Move(graph.getFace(1).getEdge(2), LINE_YES),
+				new Move(graph.getFace(1).getEdge(3), LINE_NO),
+
+				new Move(graph.getFace(2).getEdge(0), LINE_YES),
+				new Move(graph.getFace(2).getEdge(1), LINE_YES),
+				new Move(graph.getFace(2).getEdge(2), LINE_YES)
+		);
+		assertNoDuplicateMoves(moves);
+	}
+
 	private void assertNoDuplicateMoves(List<Move> moves) {
 		moves.stream()
 				.collect(toMap(Move::getEdge, identity()));
