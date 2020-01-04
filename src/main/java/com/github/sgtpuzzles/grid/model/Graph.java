@@ -33,7 +33,15 @@ public class Graph {
 	}
 
 	private Edge createEdge(final Vertex v1, final Vertex v2) {
-		final var edge = new Edge(edges.size(), v1, v2);
+		Vertex first, second;
+		if (v1.compareTo(v2) < 0) {
+			first = v1;
+			second = v2;
+		} else {
+			first = v2;
+			second = v1;
+		}
+		final var edge = new Edge(edges.size(), first, second);
 		edges.add(edge);
 		v1.addEdge(edge);
 		v2.addEdge(edge);
