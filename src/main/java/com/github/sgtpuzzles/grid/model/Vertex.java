@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @Data
 @ToString(includeFieldNames = false)
-public class Vertex {
+public class Vertex implements Comparable<Vertex> {
 	private final Point position;
 	@EqualsAndHashCode.Exclude
 	@ToString.Exclude
@@ -23,5 +23,10 @@ public class Vertex {
 	public void addEdge(final Edge edge) {
 		var other = edge.getVertex1() == this ? edge.getVertex2() : edge.getVertex1();
 		edges.put(other, edge);
+	}
+
+	@Override
+	public int compareTo(Vertex o) {
+		return position.compareTo(o.position);
 	}
 }
