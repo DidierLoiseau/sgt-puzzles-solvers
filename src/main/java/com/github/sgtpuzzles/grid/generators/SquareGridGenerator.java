@@ -2,17 +2,17 @@ package com.github.sgtpuzzles.grid.generators;
 
 import com.github.sgtpuzzles.grid.model.Graph;
 import com.github.sgtpuzzles.grid.model.Vertex;
-import com.github.sgtpuzzles.solvers.loopy.params.LoopyParams;
+import com.github.sgtpuzzles.solvers.loopy.params.LoopyType;
+import lombok.Getter;
 
 import java.util.Arrays;
 import java.util.List;
 
-public class SquareGridGenerator {
+public class SquareGridGenerator implements GridGenerator {
+	@Getter
+	private final LoopyType type = LoopyType.SQUARE;
 
-	public Graph generate(LoopyParams params) {
-		return generate(params.getWidth(), params.getHeight());
-	}
-
+	@Override
 	public Graph generate(int width, int height) {
 		var grid = new Graph();
 		int side = 20;
