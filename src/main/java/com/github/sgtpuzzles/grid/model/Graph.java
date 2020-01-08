@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
+import static java.util.stream.Collectors.toList;
 
 @Data
 public class Graph {
@@ -46,6 +48,20 @@ public class Graph {
 		v1.addEdge(edge);
 		v2.addEdge(edge);
 		return edge;
+	}
+
+	public void addFace(int... vertexCoordinates) {
+		if (vertexCoordinates.length % 2 != 0) {
+			throw new IllegalArgumentException("Odd number of coordinates");
+		}
+		addFace(IntStream.range(0, vertexCoordinates.length / 2)
+				.map(i -> 2 * i)
+				.mapToObj(i -> getVertex(vertexCoordinates[i], vertexCoordinates[i + 1]))
+				.collect(toList()));
+	}
+
+	public void addFace(Vertex... vertices) {
+		addFace(asList(vertices));
 	}
 
 	public void addFace(List<Vertex> vertices) {

@@ -1,5 +1,6 @@
 package com.github.sgtpuzzles.solvers.loopy;
 
+import com.github.sgtpuzzles.grid.generators.GridGenerator;
 import com.github.sgtpuzzles.grid.generators.SquareGridGenerator;
 import org.junit.jupiter.api.Test;
 
@@ -53,7 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class LoopySolverTest {
 	private final LoopySolver solver = new LoopySolver();
-	private final SquareGridGenerator generator = new SquareGridGenerator();
+	private final GridGenerator generator = new SquareGridGenerator();
 	public static final Pattern VISUAL_CLUE_PATTERN = Pattern.compile("[ \u2500-\u257F] ([ \\d]) ");
 
 	@Test
