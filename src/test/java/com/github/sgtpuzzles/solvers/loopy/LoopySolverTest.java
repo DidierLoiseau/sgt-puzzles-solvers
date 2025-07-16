@@ -1,19 +1,17 @@
 package com.github.sgtpuzzles.solvers.loopy;
 
-import com.github.sgtpuzzles.grid.generators.GridGenerator;
-import com.github.sgtpuzzles.grid.generators.SquareGridGenerator;
-import org.junit.jupiter.api.Test;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import com.github.sgtpuzzles.grid.generators.GridGenerator;
+import com.github.sgtpuzzles.grid.generators.SquareGridGenerator;
+import org.junit.jupiter.api.Test;
+
 import static com.github.sgtpuzzles.solvers.loopy.LineStatus.LINE_NO;
 import static com.github.sgtpuzzles.solvers.loopy.LineStatus.LINE_YES;
 import static java.lang.Integer.parseInt;
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /*
@@ -151,8 +149,8 @@ public class LoopySolverTest {
 				    ┏━━━┥   │
 				  2 ┃   ╎ 2 │
 				┏━━━┛   ┟───┘
-				┃     2 ┃    
-				┗━━━━━━━┛    
+				┃     2 ┃
+				┗━━━━━━━┛
 				""");
 
 		// when
@@ -373,6 +371,36 @@ public class LoopySolverTest {
 	}
 
 	@Test
+	public void solveDetectsComplimentaryAdvanced() {
+		// given
+		var graph = generator.generate(8, 6);
+		var clues = parseClues("""
+				┌───┬───┬───┬───┬───┬───┬───┬───┐
+				│   │   │   │   │   │   │   │   │
+				├───┼───┼───┼───┼───┘   └───┼───┤
+				│   │   │   │   │     0     │   │
+				├───┼───┘   └───┼───┐       └───┤
+				│   │     0     │ 2 │     0     │
+				├───┼───┐   ┌───┼───┧           │
+				│   │   │   │   │   ┃     0     │
+				├───┼───┼───┼───┶━━━┛       ┌───┤
+				│   │   ╏ 3 │     1   0     │   │ // must detect that the bottom-left of the 3 must be set
+				├───┼───┗╍╍╍┼───┐       ┌───┼───┤
+				│   │   │   │   │       │   │   │
+				└───┴───┴───┴───┴───────┴───┴───┘
+				""");
+
+		// when
+		List<Move> moves = solver.solve(graph, clues);
+
+		// then
+		assertThat(moves).contains(
+				new Move(graph.getFace(34).getEdge(2), LINE_YES),
+				new Move(graph.getFace(34).getEdge(3), LINE_YES));
+		assertNoDuplicateMoves(moves);
+	}
+
+	@Test
 	public void solveDetectsComplementaryAllOrNones() {
 		// given
 		var graph = generator.generate(2, 2);
@@ -483,8 +511,7 @@ public class LoopySolverTest {
 	}
 
 	private void assertNoDuplicateMoves(List<Move> moves) {
-		moves.stream()
-				.collect(toMap(Move::getEdge, identity()));
+		assertThat(moves).extracting(Move::getEdge).doesNotHaveDuplicates();
 	}
 
 	private Map<Integer, Integer> parseClues(String visual) {

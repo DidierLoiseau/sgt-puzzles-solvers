@@ -330,7 +330,6 @@ then
 	insert(atLeast($yeses - min($overA.size(), $overB.size())).amongEdges($remainingEdges));
 end
 
-/* not really necessary, at least for square grids
 rule "Complementary group overlaps AtMost"
 when
 	not EdgeSetting()
@@ -343,7 +342,6 @@ when
 then
 	insert(atMost($yeses - min($overA.size(), $overB.size())).amongEdges($remainingEdges));
 end
-*/
 
 rule "CountOrNone overlaps group with expected number of edges"
 when
